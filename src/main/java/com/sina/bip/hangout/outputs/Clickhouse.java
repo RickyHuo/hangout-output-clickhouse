@@ -8,6 +8,7 @@ import java.util.Map;
 
 import com.ctrip.ops.sysdev.baseplugin.BaseOutput;
 import ru.yandex.clickhouse.BalancedClickhouseDataSource;
+import ru.yandex.clickhouse.ClickHouseDataSource;
 import ru.yandex.clickhouse.settings.ClickHouseProperties;
 
 /**
@@ -19,11 +20,13 @@ public class Clickhouse extends BaseOutput{
     private String host;
     private String database;
     private String table;
+    private String jdbcLink;
     private List<String> fields;
     private int bulkSize;
     private String preSql = initSql();
     private List<Map> events;
     private StringBuilder sql = new StringBuilder(preSql);
+    private Map<String, String> schema;
 
     public Clickhouse(Map config) { super (config); }
 
@@ -59,6 +62,15 @@ public class Clickhouse extends BaseOutput{
         } else {
             System.out.println("fields must be included in config");
         }
+
+        this.jdbcLink = String.format("jdbc:clickhouse://%s/%s", this.host, this.database);
+        ClickHouseDataSource dataSource = new ClickHouseDataSource(this.jdbcLink);
+        try {
+            this.schema = ClickhouseUtils.getSchema(dataSource, this.table);
+        } catch (SQLException e) {
+            System.out.println("table is not vaild");
+            System.exit(1);
+        }
     }
 
     protected String initSql() {
@@ -76,15 +88,20 @@ public class Clickhouse extends BaseOutput{
                 String value = "(";
                 for (int j =0; j < fields.size(); j++) {
                     String field = fields.get(j);
-                    if (e.get(field) instanceof String) {
-                        String fieldValue = e.get(field).toString();
-                        if (!(fieldValue.indexOf("'") > 0)){
-                            value += "'" + e.get(field) + "'";
+                    // 判断元数据中是否有对应的key
+                    if (e.containsKey(field)) {
+                        if (e.get(field) instanceof String) {
+                            String fieldValue = e.get(field).toString();
+                            if (!(fieldValue.indexOf("'") > 0)){
+                                value += "'" + e.get(field) + "'";
+                            } else {
+                                value += "''";
+                            }
                         } else {
-                            value += "''";
+                            value += e.get(field);
                         }
                     } else {
-                        value += e.get(field);
+                        value += ClickhouseUtils.renderDefault(this.schema.get(field));
                     }
                     if(j != fields.size() -1 ) {
                         value += ",";
