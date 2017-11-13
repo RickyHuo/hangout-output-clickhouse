@@ -96,3 +96,6 @@ hs_err_pid*
 # IDEA
 *.idea
 *.iml
+
+# build targets
+target/
