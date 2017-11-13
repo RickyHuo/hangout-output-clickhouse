@@ -71,6 +71,14 @@ public class Clickhouse extends BaseOutput{
             System.out.println("table is not vaild");
             System.exit(1);
         }
+
+        for (String field: fields) {
+            if (!this.schema.containsKey(field)) {
+                String msg = String.format("table [%s] doesn't contain field '%s'", this.table, field);
+                System.out.println(msg);
+                System.exit(1);
+            }
+        }
     }
 
     protected String initSql() {
