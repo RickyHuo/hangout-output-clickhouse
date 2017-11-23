@@ -1,9 +1,15 @@
 # hangout-output-plugins-clickhouse
 
-`hangout`输出写入`Clickhouse`的插件
+> hangout-out-plugins-clickhouse base on hangout-0.3.0
 
-## Sample
+## Usage
 
+
+
+
+1. 将打包好的jar包(hangout-filters-reverse-0.1.jar)放到hangout的modules文件夹下
+
+2.
 ```
 outputs:
     - com.sina.bip.hangout.outputs.Clickhouse:
@@ -14,5 +20,9 @@ outputs:
         bulk_size: 500
 ```
 
-## 说明
-> `fields`列表字段需要与`clickhouse`中数据表的字段保持一致， 如果不一致会导致插入报错， 可以使用*filters.Rename*对字段重命名
+
+## Reference
+
+> [hangout](https://github.com/childe/hangout)
+
+  [hangout-filter-reverse](https://github.com/childe/hangout-filter-reverse)
