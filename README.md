@@ -25,4 +25,4 @@ outputs:
 
 > [hangout](https://github.com/childe/hangout)
 
-  [hangout-filter-reverse](https://github.com/childe/hangout-filter-reverse)
+> [hangout-filter-reverse](https://github.com/childe/hangout-filter-reverse)
