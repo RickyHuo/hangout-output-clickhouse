@@ -108,16 +108,16 @@ public class Clickhouse extends BaseOutput{
                 String value = "(";
                 for (int j =0; j < fields.size(); j++) {
                     String field = fields.get(j);
-                    if (this.fieldGetterMap.get(field).getField(e) != null) {
+                    Object fieldValue = this.fieldGetterMap.get(field).getField(e);
+                    if (fieldValue != null) {
                         if (this.fieldGetterMap.get(field).getField(e) instanceof String) {
-                            String fieldValue = this.fieldGetterMap.get(field).getField(e).toString();
-                            if (!(fieldValue.indexOf("'") > 0)){
-                                value += "'" + this.fieldGetterMap.get(field).getField(e).toString() + "'";
+                            if (!(fieldValue.toString().indexOf("'") > 0)){
+                                value += "'" + fieldValue.toString() + "'";
                             } else {
                                 value += "''";
                             }
                         } else {
-                            value += this.fieldGetterMap.get(field).getField(e).toString();
+                            value += fieldValue;
                         }
                     } else {
                         value += ClickhouseUtils.renderDefault(this.schema.get(ClickhouseUtils.realField(field)));
@@ -135,7 +135,7 @@ public class Clickhouse extends BaseOutput{
 
             Connection conn = balanced.getConnection();
             try {
-                System.out.println(sqls.toString());
+                // System.out.println(sqls.toString());
                 conn.createStatement().execute(sqls.toString());
             } catch (SQLException e){
                 System.out.println(e.toString());
