@@ -1,5 +1,6 @@
 package com.sina.bip.hangout.outputs;
 
+import java.awt.*;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -88,7 +89,12 @@ public class Clickhouse extends BaseOutput{
     }
 
     protected String initSql() {
-        String init = String.format("insert into %s (%s) values", this.table, String.join(", ", this.fields));
+        List<String> realFields = new ArrayList<>();
+        for(String field: fields) {
+            realFields.add(ClickhouseUtils.realField(field));
+        }
+        String init = String.format("insert into %s (%s) values", this.table,
+                String.join(", ", realFields));
         return init;
     }
 
@@ -106,12 +112,12 @@ public class Clickhouse extends BaseOutput{
                         if (this.fieldGetterMap.get(field).getField(e) instanceof String) {
                             String fieldValue = this.fieldGetterMap.get(field).getField(e).toString();
                             if (!(fieldValue.indexOf("'") > 0)){
-                                value += "'" + e.get(field) + "'";
+                                value += "'" + this.fieldGetterMap.get(field).getField(e).toString() + "'";
                             } else {
                                 value += "''";
                             }
                         } else {
-                            value += e.get(field);
+                            value += this.fieldGetterMap.get(field).getField(e).toString();
                         }
                     } else {
                         value += ClickhouseUtils.renderDefault(this.schema.get(ClickhouseUtils.realField(field)));
