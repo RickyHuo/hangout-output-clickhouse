@@ -3,10 +3,12 @@ package com.sina.bip.hangout.outputs;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import com.ctrip.ops.sysdev.baseplugin.BaseOutput;
+import com.ctrip.ops.sysdev.fieldGetter.FieldGetter;
 import ru.yandex.clickhouse.BalancedClickhouseDataSource;
 import ru.yandex.clickhouse.ClickHouseDataSource;
 import ru.yandex.clickhouse.settings.ClickHouseProperties;
@@ -27,6 +29,7 @@ public class Clickhouse extends BaseOutput{
     private List<Map> events;
     private StringBuilder sql = new StringBuilder(preSql);
     private Map<String, String> schema;
+    private Map<String, FieldGetter> fieldGetterMap;
 
     public Clickhouse(Map config) { super (config); }
 
@@ -72,21 +75,24 @@ public class Clickhouse extends BaseOutput{
             System.exit(1);
         }
 
+        this.fieldGetterMap = new HashMap<>();
         for (String field: fields) {
-            if (!this.schema.containsKey(field)) {
-                String msg = String.format("table [%s] doesn't contain field '%s'", this.table, field);
+            if (!this.schema.containsKey(ClickhouseUtils.realField(field))) {
+                String msg = String.format("table [%s] doesn't contain field '%s'", this.table,
+                        ClickhouseUtils.realField(field));
                 System.out.println(msg);
                 System.exit(1);
             }
+            this.fieldGetterMap.put(field, FieldGetter.getFieldSetter(field));
         }
     }
 
     protected String initSql() {
-        String init = String.format("insert into %s (%s) values", this.table, String.join(" ,", this.fields));
+        String init = String.format("insert into %s (%s) values", this.table, String.join(", ", this.fields));
         return init;
     }
 
-    protected void bulkInsert(Map event) throws Exception{
+    protected void bulkInsert(Map event) throws Exception {
 
         this.events.add(event);
         if(this.events.size() == this.bulkSize) {
@@ -96,10 +102,9 @@ public class Clickhouse extends BaseOutput{
                 String value = "(";
                 for (int j =0; j < fields.size(); j++) {
                     String field = fields.get(j);
-                    // 判断元数据中是否有对应的key
-                    if (e.containsKey(field)) {
-                        if (e.get(field) instanceof String) {
-                            String fieldValue = e.get(field).toString();
+                    if (this.fieldGetterMap.get(field).getField(e) != null) {
+                        if (this.fieldGetterMap.get(field).getField(e) instanceof String) {
+                            String fieldValue = this.fieldGetterMap.get(field).getField(e).toString();
                             if (!(fieldValue.indexOf("'") > 0)){
                                 value += "'" + e.get(field) + "'";
                             } else {
@@ -109,7 +114,7 @@ public class Clickhouse extends BaseOutput{
                             value += e.get(field);
                         }
                     } else {
-                        value += ClickhouseUtils.renderDefault(this.schema.get(field));
+                        value += ClickhouseUtils.renderDefault(this.schema.get(ClickhouseUtils.realField(field)));
                     }
                     if(j != fields.size() -1 ) {
                         value += ",";
@@ -124,6 +129,7 @@ public class Clickhouse extends BaseOutput{
 
             Connection conn = balanced.getConnection();
             try {
+                System.out.println(sqls.toString());
                 conn.createStatement().execute(sqls.toString());
             } catch (SQLException e){
                 System.out.println(e.toString());
@@ -140,7 +146,7 @@ public class Clickhouse extends BaseOutput{
         try {
             bulkInsert(event);
         } catch (Exception e) {
-            System.out.println("insert error");
+            System.out.println(e);
         }
     }
 

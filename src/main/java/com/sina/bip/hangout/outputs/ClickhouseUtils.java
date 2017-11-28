@@ -5,10 +5,13 @@ import ru.yandex.clickhouse.ClickHouseDataSource;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.text.SimpleDateFormat;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Created by huochen on 2017/11/13.
@@ -42,5 +45,23 @@ public class ClickhouseUtils {
             return String.format("'%s'", dateFormat.format(new Date()));
         } else
             return "";
+    }
+
+    public static String realField(String field) {
+
+        final Pattern p = Pattern.compile("\\[(\\S+?)\\]+");
+        ArrayList<String> fields = new ArrayList();
+        Matcher m = p.matcher(field);
+        while (m.find()) {
+            String a = m.group();
+            fields.add(a.substring(1, a.length() - 1));
+        }
+
+        int size = fields.size();
+        if (size == 0) {
+            return field;
+        } else {
+            return fields.get(size - 1);
+        }
     }
 }
