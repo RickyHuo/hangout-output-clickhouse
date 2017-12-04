@@ -1,3 +1,4 @@
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -6,8 +7,10 @@ import java.util.Map;
  */
 public class TestMain {
     public static void main(String args[]) {
-        Map<String, String> map = new HashMap<String, String>();
-        map.put("a", "b");
-        System.out.println(map.get("h"));
+
+        String src = "a='b+\\'+c'";
+        System.out.println(src);
+        System.out.println(src.replace("'", "\\'"));
+        System.out.println(src.replace("'", "\\'").replace("\\\\'", "\\\\\\'"));
     }
 }

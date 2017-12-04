@@ -97,16 +97,24 @@ public class Clickhouse extends BaseOutput{
                 for (int j =0; j < fields.size(); j++) {
                     String field = fields.get(j);
                     // 判断元数据中是否有对应的key
+
                     if (e.containsKey(field)) {
                         if (e.get(field) instanceof String) {
                             String fieldValue = e.get(field).toString();
                             if (!(fieldValue.indexOf("'") > 0)){
                                 value += "'" + e.get(field) + "'";
                             } else {
-                                value += "''";
+                                if (fieldValue.indexOf("\\'") > 0)
+                                    value += "'" + fieldValue.replace("'", "\\'").replace("\\\\'", "\\\\\\'") + "'";
+                                else
+                                    value += "'" + fieldValue.replace("'", "\\'") + "'";
                             }
                         } else {
-                            value += e.get(field);
+                            if (e.get(field) == null){
+                                value += "''";
+                            } else {
+                                value += e.get(field);
+                            }
                         }
                     } else {
                         value += ClickhouseUtils.renderDefault(this.schema.get(field));
@@ -126,9 +134,14 @@ public class Clickhouse extends BaseOutput{
             try {
                 conn.createStatement().execute(sqls.toString());
             } catch (SQLException e){
+                System.out.println(sqls.toString());
                 System.out.println(e.toString());
+                for (int i = 0; i < this.events.size(); i++) {
+                    System.out.println(events.get(i));
+                }
                 // System.out.println("insert error");
             } catch (Exception e) {
+                System.out.println(e.toString());
                 System.out.println("error");
             }
             conn.close();
@@ -140,6 +153,7 @@ public class Clickhouse extends BaseOutput{
         try {
             bulkInsert(event);
         } catch (Exception e) {
+            System.out.println(e.toString());
             System.out.println("insert error");
         }
     }
