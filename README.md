@@ -60,5 +60,5 @@ outputs:
         bulk_size: 500
 ```
 
-> 讲fields中对应的字段写入ClickHouse
+> 将fields中对应的字段写入ClickHouse
 
