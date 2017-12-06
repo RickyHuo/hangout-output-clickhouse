@@ -22,6 +22,7 @@ public class Clickhouse extends BaseOutput{
     private String table;
     private String jdbcLink;
     private List<String> fields;
+    private List<String> replace_fields = new ArrayList<String>();
     private int bulkSize;
     private String preSql = initSql();
     private List<Map> events;
@@ -63,8 +64,15 @@ public class Clickhouse extends BaseOutput{
             System.out.println("fields must be included in config");
         }
 
+        if(this.config.containsKey("replace_fields")) {
+            this.replace_fields = (List<String>) this.config.get("replace_fields");
+        }
         this.jdbcLink = String.format("jdbc:clickhouse://%s/%s", this.host, this.database);
-        ClickHouseDataSource dataSource = new ClickHouseDataSource(this.jdbcLink);
+
+        // ClickHouseDataSource 不支持逗号","分割的多个节点
+
+        String databaseSource = String.format("jdbc:clickhouse://%s/%s", this.host.split(",")[0], this.database);
+        ClickHouseDataSource dataSource = new ClickHouseDataSource(databaseSource);
         try {
             this.schema = ClickhouseUtils.getSchema(dataSource, this.table);
         } catch (SQLException e) {
@@ -101,13 +109,17 @@ public class Clickhouse extends BaseOutput{
                     if (e.containsKey(field)) {
                         if (e.get(field) instanceof String) {
                             String fieldValue = e.get(field).toString();
-                            if (!(fieldValue.indexOf("'") > 0)){
-                                value += "'" + e.get(field) + "'";
+                            if (replace_fields.contains(field)) {
+                                if (!(fieldValue.indexOf("'") > 0)){
+                                    value += "'" + e.get(field) + "'";
+                                } else {
+                                    if (fieldValue.indexOf("\\'") > 0)
+                                        value += "'" + fieldValue.replace("'", "\\'").replace("\\\\'", "\\\\\\'") + "'";
+                                    else
+                                        value += "'" + fieldValue.replace("'", "\\'") + "'";
+                                }
                             } else {
-                                if (fieldValue.indexOf("\\'") > 0)
-                                    value += "'" + fieldValue.replace("'", "\\'").replace("\\\\'", "\\\\\\'") + "'";
-                                else
-                                    value += "'" + fieldValue.replace("'", "\\'") + "'";
+                                value += "'" + fieldValue + "'";
                             }
                         } else {
                             if (e.get(field) == null){
@@ -127,8 +139,7 @@ public class Clickhouse extends BaseOutput{
                 sqls.append(value);
             }
             ClickHouseProperties properties = new ClickHouseProperties();
-            String jdbcLink = String.format("jdbc:clickhouse://%s/%s", this.host, this.database);
-            BalancedClickhouseDataSource balanced = new BalancedClickhouseDataSource(jdbcLink, properties);
+            BalancedClickhouseDataSource balanced = new BalancedClickhouseDataSource(this.jdbcLink, properties);
 
             Connection conn = balanced.getConnection();
             try {
