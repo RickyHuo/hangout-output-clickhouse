@@ -22,7 +22,7 @@ public class Clickhouse extends BaseOutput{
     private String table;
     private String jdbcLink;
     private List<String> fields;
-    private List<String> replace_fields = new ArrayList<String>();
+    private List<String> replace_fields;
     private int bulkSize;
     private String preSql = initSql();
     private List<Map> events;
@@ -67,6 +67,7 @@ public class Clickhouse extends BaseOutput{
         if(this.config.containsKey("replace_fields")) {
             this.replace_fields = (List<String>) this.config.get("replace_fields");
         }
+
         this.jdbcLink = String.format("jdbc:clickhouse://%s/%s", this.host, this.database);
 
         // ClickHouseDataSource 不支持逗号","分割的多个节点
@@ -109,14 +110,16 @@ public class Clickhouse extends BaseOutput{
                     if (e.containsKey(field)) {
                         if (e.get(field) instanceof String) {
                             String fieldValue = e.get(field).toString();
-                            if (replace_fields.contains(field)) {
+                            if (this.replace_fields != null && this.replace_fields.contains(field)) {
                                 if (!(fieldValue.indexOf("'") > 0)){
                                     value += "'" + e.get(field) + "'";
                                 } else {
-                                    if (fieldValue.indexOf("\\'") > 0)
+                                    if (fieldValue.indexOf("\\'") > 0) {
                                         value += "'" + fieldValue.replace("'", "\\'").replace("\\\\'", "\\\\\\'") + "'";
-                                    else
+                                    }
+                                    else {
                                         value += "'" + fieldValue.replace("'", "\\'") + "'";
+                                    }
                                 }
                             } else {
                                 value += "'" + fieldValue + "'";
