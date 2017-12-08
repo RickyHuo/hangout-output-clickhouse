@@ -76,7 +76,7 @@ public class Clickhouse extends BaseOutput{
 
         if (this.config.containsKey("replace_include_fields") && this.config.containsKey("replace_exclude_fields")) {
             System.out.println("Replace_include_fields and replace_exclude_fields exist at the same time," +
-                    " please use one of them");
+                    " please use one of them.");
             System.exit(1);
         }
 
@@ -136,7 +136,7 @@ public class Clickhouse extends BaseOutput{
                         String fieldValue = e.get(field).toString();
                         if ((this.replace_include_fields != null && this.replace_include_fields.contains(field)) ||
                                 (this.replace_exclude_fields != null && !this.replace_exclude_fields.contains(field))) {
-                            dealWithQuote(fieldValue);
+                            value += "'" + dealWithQuote(fieldValue) + "'";
                         } else {
                             value += "'" + fieldValue + "'";
                         }
@@ -171,6 +171,7 @@ public class Clickhouse extends BaseOutput{
             Connection conn = balanced.getConnection();
             try {
                 conn.createStatement().execute(sqls.toString());
+                conn.close();
             } catch (SQLException e){
                 System.out.println(sqls.toString());
                 System.out.println(e.toString());
