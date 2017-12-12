@@ -30,6 +30,9 @@ public class Clickhouse extends BaseOutput{
     private List<Map> events;
     private StringBuilder sql = new StringBuilder(preSql);
     private Map<String, String> schema;
+    private Boolean withCredit;
+    private String user;
+    private String password;
 
     public Clickhouse(Map config) { super (config); }
 
@@ -53,6 +56,17 @@ public class Clickhouse extends BaseOutput{
             System.exit(1);
         }
         this.table = (String) this.config.get("table");
+
+        if(this.config.containsKey("user") && this.config.containsKey("password")) {
+            this.user = (String) this.config.get("user");
+            this.password = (String) this.config.get("password");
+            this.withCredit = true;
+
+        } else if (this.config.containsKey("user") || this.config.containsKey("password")) {
+            System.out.println("User and password must be included in config at same time");
+        } else {
+            this.withCredit = false;
+        }
 
         if (this.config.containsKey("bulk_size")) {
             this.bulkSize = (Integer) this.config.get("bulk_size");
@@ -83,9 +97,15 @@ public class Clickhouse extends BaseOutput{
         this.jdbcLink = String.format("jdbc:clickhouse://%s/%s", this.host, this.database);
 
         // ClickHouseDataSource 不支持逗号","分割的多个节点
-
         String databaseSource = String.format("jdbc:clickhouse://%s/%s", this.host.split(",")[0], this.database);
+        ClickHouseProperties properties = new ClickHouseProperties();
+
+
         ClickHouseDataSource dataSource = new ClickHouseDataSource(databaseSource);
+        if (this.withCredit) {
+            ClickHouseProperties withCredentials = properties.withCredentials(this.user, this.password);
+            dataSource = new ClickHouseDataSource(databaseSource, withCredentials);
+        }
         try {
             this.schema = ClickhouseUtils.getSchema(dataSource, this.table);
         } catch (SQLException e) {
@@ -166,7 +186,13 @@ public class Clickhouse extends BaseOutput{
         if(this.events.size() == this.bulkSize) {
             StringBuilder sqls = makeUpSql(this.events);
             ClickHouseProperties properties = new ClickHouseProperties();
+
             BalancedClickhouseDataSource balanced = new BalancedClickhouseDataSource(this.jdbcLink, properties);
+
+            if (this.withCredit) {
+                ClickHouseProperties withCredentials = properties.withCredentials(this.user, this.password);
+                balanced = new BalancedClickhouseDataSource(this.jdbcLink, withCredentials);
+            }
 
             Connection conn = balanced.getConnection();
             try {
