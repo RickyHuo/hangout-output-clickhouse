@@ -3,10 +3,12 @@ package com.sina.bip.hangout.outputs;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import com.ctrip.ops.sysdev.baseplugin.BaseOutput;
+import com.ctrip.ops.sysdev.render.TemplateRender;
 import ru.yandex.clickhouse.BalancedClickhouseDataSource;
 import ru.yandex.clickhouse.ClickHouseDataSource;
 import ru.yandex.clickhouse.settings.ClickHouseProperties;
@@ -14,7 +16,7 @@ import ru.yandex.clickhouse.settings.ClickHouseProperties;
 /**
  * Created by huochen on 2017/09/23.
  */
-public class Clickhouse extends BaseOutput{
+public class Clickhouse extends BaseOutput {
 
     private final static int BULKSIZE = 1000;
 
@@ -33,6 +35,7 @@ public class Clickhouse extends BaseOutput{
     private Boolean withCredit;
     private String user;
     private String password;
+    private Map<String, TemplateRender> templateRenderMap;
 
     public Clickhouse(Map config) { super (config); }
 
@@ -113,22 +116,35 @@ public class Clickhouse extends BaseOutput{
             System.exit(1);
         }
 
+        this.templateRenderMap = new HashMap<>();
         for (String field: fields) {
-            if (!this.schema.containsKey(field)) {
+            if (!this.schema.containsKey(ClickhouseUtils.realField(field))) {
                 String msg = String.format("table [%s] doesn't contain field '%s'", this.table, field);
                 System.out.println(msg);
                 System.exit(1);
             }
+            try {
+                this.templateRenderMap.put(field, TemplateRender.getRender(field, false));
+            } catch (Exception e) {
+                String msg = String.format("cannot get templateRender of field [%s]", field);
+                System.out.println(msg);
+            }
         }
+
     }
 
-    protected String initSql() {
+    private String initSql() {
 
-        String init = String.format("insert into %s (%s) values", this.table, String.join(" ,", this.fields));
+        List<String> realFields = new ArrayList<>();
+        for(String field: fields) {
+            realFields.add(ClickhouseUtils.realField(field));
+        }
+
+        String init = String.format("insert into %s (%s) values", this.table, String.join(" ,", realFields));
         return init;
     }
 
-    protected String dealWithQuote(String str) {
+    private String dealWithQuote(String str) {
         /*
         * 因为Clickhouse SQL语句必须用单引号'
         * insert into test.test (date, value) values ('2017-10-29', '23')
@@ -145,20 +161,20 @@ public class Clickhouse extends BaseOutput{
         }
     }
 
-    protected StringBuilder makeUpSql(List<Map> events) {
+    private StringBuilder makeUpSql(List<Map> events) {
 
         StringBuilder sqls = new StringBuilder(preSql);
         for(Map e: events) {
             String value = "(";
             for(String field: fields) {
-                if (e.containsKey(field)) {
-                    if (e.get(field) instanceof String) {
-                        String fieldValue = e.get(field).toString();
+                Object fieldValue = this.templateRenderMap.get(field).render(e);
+                if (fieldValue != null) {
+                    if (fieldValue instanceof String) {
                         if ((this.replace_include_fields != null && this.replace_include_fields.contains(field)) ||
                                 (this.replace_exclude_fields != null && !this.replace_exclude_fields.contains(field))) {
-                            value += "'" + dealWithQuote(fieldValue) + "'";
+                            value += "'" + dealWithQuote(fieldValue.toString()) + "'";
                         } else {
-                            value += "'" + fieldValue + "'";
+                            value += "'" + fieldValue.toString() + "'";
                         }
                     } else {
                         if (e.get(field) == null){
@@ -168,7 +184,7 @@ public class Clickhouse extends BaseOutput{
                         }
                     }
                 } else {
-                    value += ClickhouseUtils.renderDefault(this.schema.get(field));
+                    value += ClickhouseUtils.renderDefault(this.schema.get(ClickhouseUtils.realField(field)));
                 }
                 if (fields.indexOf(field) != fields.size() -1) {
                     value += ",";
@@ -180,7 +196,7 @@ public class Clickhouse extends BaseOutput{
         return sqls;
     }
 
-    protected void bulkInsert(Map event) throws Exception{
+    private void bulkInsert(Map event) throws Exception{
 
         this.events.add(event);
         if(this.events.size() == this.bulkSize) {
