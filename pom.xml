@@ -1,33 +1,33 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <modelVersion>4.0.0</modelVersion>
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
 
-  <groupId>sina</groupId>
-  <artifactId>hangout-output-plugins-clickhouse</artifactId>
-  <version>0.0.2</version>
-  <packaging>jar</packaging>
+    <groupId>sina</groupId>
+    <artifactId>hangout-output-plugins-clickhouse</artifactId>
+    <version>0.0.2</version>
+    <packaging>jar</packaging>
 
-  <name>hangout-output-plugins-clickhouse</name>
-  <url>http://maven.apache.org</url>
+    <name>hangout-output-plugins-clickhouse</name>
+    <url>http://maven.apache.org</url>
 
-  <properties>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-  </properties>
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
 
-  <dependencies>
-      <dependency>
-          <groupId>ctrip</groupId>
-          <artifactId>hangout-baseplugin</artifactId>
-          <version>0.3.0</version>
-          <scope>system</scope>
+    <dependencies>
+        <dependency>
+            <groupId>ctrip</groupId>
+            <artifactId>hangout-baseplugin</artifactId>
+            <version>0.3.0</version>
+              <scope>system</scope>
           <systemPath>C:\Users\huochen\.m2\repository\ctrip\hangout-baseplugin\0.3.0\hangout-baseplugin-0.3.0.jar</systemPath>
-      </dependency>
-      <dependency>
-          <groupId>ru.yandex.clickhouse</groupId>
-          <artifactId>clickhouse-jdbc</artifactId>
-          <version>0.1.34</version>
-      </dependency>
-  </dependencies>
+        </dependency>
+        <dependency>
+            <groupId>ru.yandex.clickhouse</groupId>
+            <artifactId>clickhouse-jdbc</artifactId>
+            <version>0.1.34</version>
+        </dependency>
+    </dependencies>
 
     <build>
         <plugins>
