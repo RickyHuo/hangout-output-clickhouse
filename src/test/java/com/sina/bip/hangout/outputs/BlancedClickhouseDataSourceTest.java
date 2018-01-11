@@ -18,7 +18,7 @@ public class BlancedClickhouseDataSourceTest {
         String db = "test";
         ClickHouseProperties properties = new ClickHouseProperties();
         //String jdbcLink = String.format("jdbc:clickhouse://%s/%s", h, db);
-        String jdbcLink = "jdbc:clickhouse://10.19.0.120:8123,10.13.56.170:8123,10.13.0.235:8123,10.13.0.232:8123/test";
+        String jdbcLink = "jdbc:clickhouse://localhost:8123,localhost1:8123,localhost2:8123/test";
 
         Pattern URL_TEMPLATE = Pattern.compile(JDBC_CLICKHOUSE_PREFIX + "//([a-zA-Z0-9_:,.]+)(/[a-zA-Z0-9_]+)?");
         Matcher m = URL_TEMPLATE.matcher(jdbcLink);
