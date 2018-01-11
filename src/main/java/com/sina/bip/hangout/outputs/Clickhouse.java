@@ -16,6 +16,8 @@ import ru.yandex.clickhouse.settings.ClickHouseProperties;
 /**
  * Created by huochen on 2017/09/23.
  */
+
+
 public class Clickhouse extends BaseOutput {
 
     private final static int BULKSIZE = 1000;
@@ -165,73 +167,87 @@ public class Clickhouse extends BaseOutput {
 
         StringBuilder sqls = new StringBuilder(preSql);
         for(Map e: events) {
-            String value = "(";
+            StringBuilder value = new StringBuilder("(");
             for(String field: fields) {
                 Object fieldValue = this.templateRenderMap.get(field).render(e);
                 if (fieldValue != null) {
                     if (fieldValue instanceof String) {
                         if ((this.replace_include_fields != null && this.replace_include_fields.contains(field)) ||
                                 (this.replace_exclude_fields != null && !this.replace_exclude_fields.contains(field))) {
-                            value += "'" + dealWithQuote(fieldValue.toString()) + "'";
+                            value.append("'");
+                            value.append(dealWithQuote(fieldValue.toString()));
+                            value.append("'");
                         } else {
-                            value += "'" + fieldValue.toString() + "'";
+                            value.append("'");
+                            value.append(fieldValue.toString());
+                            value.append("'");
                         }
                     } else {
                         if (e.get(field) == null){
-                            value += "''";
+                            value.append("''");
                         } else {
-                            value += e.get(field);
+                            value.append(e.get(field));
                         }
                     }
                 } else {
-                    value += ClickhouseUtils.renderDefault(this.schema.get(ClickhouseUtils.realField(field)));
+                    value.append(ClickhouseUtils.renderDefault(this.schema.get(ClickhouseUtils.realField(field))));
                 }
                 if (fields.indexOf(field) != fields.size() -1) {
-                    value += ",";
+                    value.append(",");
                 }
             }
-            value += ")";
+            value.append(")");
             sqls.append(value);
         }
         return sqls;
     }
 
-    private void bulkInsert(Map event) throws Exception{
+
+    private void bulkInsert(List<Map> events) throws Exception {
+
+        StringBuilder sqls = makeUpSql(events);
+        ClickHouseProperties properties = new ClickHouseProperties();
+
+        BalancedClickhouseDataSource balanced = new BalancedClickhouseDataSource(this.jdbcLink, properties);
+
+        if (this.withCredit) {
+            ClickHouseProperties withCredentials = properties.withCredentials(this.user, this.password);
+            balanced = new BalancedClickhouseDataSource(this.jdbcLink, withCredentials);
+        }
+
+        Connection conn = balanced.getConnection();
+        try {
+            conn.createStatement().execute(sqls.toString());
+            conn.close();
+        } catch (SQLException e){
+            System.out.println(sqls.toString());
+            System.out.println(e.toString());
+            for (int i = 0; i < this.events.size(); i++) {
+                System.out.println(events.get(i));
+            }
+        } catch (Exception e) {
+            System.out.println(e.toString());
+            System.out.println("error");
+        }
+        conn.close();
+    }
+
+    private void eventInsert(Map event) throws Exception {
+        eventInsert(event, this.bulkSize);
+    }
+
+    private void eventInsert(Map event, int eventSize) throws Exception {
 
         this.events.add(event);
-        if(this.events.size() == this.bulkSize) {
-            StringBuilder sqls = makeUpSql(this.events);
-            ClickHouseProperties properties = new ClickHouseProperties();
-
-            BalancedClickhouseDataSource balanced = new BalancedClickhouseDataSource(this.jdbcLink, properties);
-
-            if (this.withCredit) {
-                ClickHouseProperties withCredentials = properties.withCredentials(this.user, this.password);
-                balanced = new BalancedClickhouseDataSource(this.jdbcLink, withCredentials);
-            }
-
-            Connection conn = balanced.getConnection();
-            try {
-                conn.createStatement().execute(sqls.toString());
-                conn.close();
-            } catch (SQLException e){
-                System.out.println(sqls.toString());
-                System.out.println(e.toString());
-                for (int i = 0; i < this.events.size(); i++) {
-                    System.out.println(events.get(i));
-                }
-            } catch (Exception e) {
-                System.out.println(e.toString());
-                System.out.println("error");
-            }
-            conn.close();
+        if(this.events.size() == eventSize) {
+            bulkInsert(this.events);
             this.events.clear();
         }
     }
 
     protected void emit(Map event) {
         try {
-            bulkInsert(event);
+            eventInsert(event);
         } catch (Exception e) {
             System.out.println(e.toString());
             System.out.println("insert error");
