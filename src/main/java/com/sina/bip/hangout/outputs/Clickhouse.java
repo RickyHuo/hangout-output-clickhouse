@@ -25,6 +25,7 @@ public class Clickhouse extends BaseOutput {
     private static final Logger log = LogManager.getLogger(Clickhouse.class);
     private final static int BULKSIZE = 1000;
 
+    private int bulkNum = 0;
     private String host;
     private String database;
     private String table;
@@ -35,7 +36,6 @@ public class Clickhouse extends BaseOutput {
     private int bulkSize;
     private String preSql = initSql();
     private List<Map> events;
-    private StringBuilder sql = new StringBuilder(preSql);
     private Map<String, String> schema;
     private Boolean withCredit;
     private String user;
@@ -207,10 +207,11 @@ public class Clickhouse extends BaseOutput {
         return sqls;
     }
 
-
     private void bulkInsert(List<Map> events) throws Exception {
 
+        log.debug("make up SQL start, number: " + this.bulkNum);
         StringBuilder sqls = makeUpSql(events);
+        log.debug("make up SQL end, number: " + this.bulkNum);
         ClickHouseProperties properties = new ClickHouseProperties();
 
         BalancedClickhouseDataSource balanced = new BalancedClickhouseDataSource(this.jdbcLink, properties);
@@ -224,15 +225,15 @@ public class Clickhouse extends BaseOutput {
         try {
             conn.createStatement().execute(sqls.toString());
             conn.close();
-        } catch (SQLException e){
-            log.error(e.toString());
+        } catch (SQLException e) {
+            log.error(e);
             log.debug(sqls.toString());
 
             for (int i = 0; i < this.events.size(); i++) {
                 log.debug(events.get(i));
             }
         } catch (Exception e) {
-            log.error("error");
+            log.error(e);
         }
         conn.close();
     }
@@ -245,8 +246,11 @@ public class Clickhouse extends BaseOutput {
 
         this.events.add(event);
         if(this.events.size() == eventSize) {
+            log.info("Insert bulk start, number: " + this.bulkNum);
             bulkInsert(this.events);
+            log.info("Insert bulk end, number: " + this.bulkNum);
             this.events.clear();
+            this.bulkNum += 1;
         }
     }
 
@@ -254,11 +258,17 @@ public class Clickhouse extends BaseOutput {
         try {
             eventInsert(event);
         } catch (Exception e) {
-            log.error(e.toString());
+            log.error(e);
             log.warn("insert error");
         }
     }
 
     public void shutdown() {
+        try {
+            bulkInsert(this.events);
+        } catch (Exception e) {
+            log.info("failed to bulk events before shutdown");
+            log.debug(e);
+        }
     }
 }
