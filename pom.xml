@@ -4,7 +4,7 @@
 
     <groupId>sina</groupId>
     <artifactId>hangout-output-plugins-clickhouse</artifactId>
-    <version>0.0.2</version>
+    <version>0.0.3</version>
     <packaging>jar</packaging>
 
     <name>hangout-output-plugins-clickhouse</name>

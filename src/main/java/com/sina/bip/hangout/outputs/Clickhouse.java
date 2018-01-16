@@ -65,13 +65,13 @@ public class Clickhouse extends BaseOutput {
         }
         this.table = (String) this.config.get("table");
 
-        if(this.config.containsKey("user") && this.config.containsKey("password")) {
-            this.user = (String) this.config.get("user");
+        if(this.config.containsKey("username") && this.config.containsKey("password")) {
+            this.user = (String) this.config.get("username");
             this.password = (String) this.config.get("password");
             this.withCredit = true;
 
-        } else if (this.config.containsKey("user") || this.config.containsKey("password")) {
-            log.warn("user and password must be included in config at same time");
+        } else if (this.config.containsKey("username") || this.config.containsKey("password")) {
+            log.warn("username and password must be included in config at same time");
         } else {
             this.withCredit = false;
         }
