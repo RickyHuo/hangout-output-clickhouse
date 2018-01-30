@@ -12,7 +12,6 @@ import com.ctrip.ops.sysdev.render.TemplateRender;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import ru.yandex.clickhouse.BalancedClickhouseDataSource;
-import ru.yandex.clickhouse.ClickHouseDataSource;
 import ru.yandex.clickhouse.settings.ClickHouseProperties;
 
 /**
@@ -105,15 +104,11 @@ public class Clickhouse extends BaseOutput {
 
         this.jdbcLink = String.format("jdbc:clickhouse://%s/%s", this.host, this.database);
 
-        // ClickHouseDataSource 不支持逗号","分割的多个节点
-        String databaseSource = String.format("jdbc:clickhouse://%s/%s", this.host.split(",")[0], this.database);
         ClickHouseProperties properties = new ClickHouseProperties();
-
-
-        ClickHouseDataSource dataSource = new ClickHouseDataSource(databaseSource);
+        BalancedClickhouseDataSource dataSource = new BalancedClickhouseDataSource(this.jdbcLink, properties);
         if (this.withCredit) {
             ClickHouseProperties withCredentials = properties.withCredentials(this.user, this.password);
-            dataSource = new ClickHouseDataSource(databaseSource, withCredentials);
+            dataSource = new BalancedClickhouseDataSource(this.jdbcLink, withCredentials);
         }
         try {
             this.schema = ClickhouseUtils.getSchema(dataSource, this.table);
@@ -213,6 +208,7 @@ public class Clickhouse extends BaseOutput {
         StringBuilder sqls = makeUpSql(events);
         log.debug("make up SQL end, number: " + this.bulkNum);
         ClickHouseProperties properties = new ClickHouseProperties();
+        properties.setUseServerTimeZone(false);
 
         BalancedClickhouseDataSource balanced = new BalancedClickhouseDataSource(this.jdbcLink, properties);
 
@@ -223,6 +219,7 @@ public class Clickhouse extends BaseOutput {
 
         Connection conn = balanced.getConnection();
         try {
+            log.trace(sqls);
             conn.createStatement().execute(sqls.toString());
             conn.close();
         } catch (SQLException e) {
