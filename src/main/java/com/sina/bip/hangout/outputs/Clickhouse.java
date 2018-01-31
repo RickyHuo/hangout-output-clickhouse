@@ -12,6 +12,7 @@ import com.ctrip.ops.sysdev.render.TemplateRender;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import ru.yandex.clickhouse.BalancedClickhouseDataSource;
+import ru.yandex.clickhouse.ClickHouseConnectionImpl;
 import ru.yandex.clickhouse.settings.ClickHouseProperties;
 
 /**
@@ -39,6 +40,8 @@ public class Clickhouse extends BaseOutput {
     private Boolean withCredit;
     private String user;
     private String password;
+    private BalancedClickhouseDataSource dataSource;
+    private ClickHouseConnectionImpl conn;
     private Map<String, TemplateRender> templateRenderMap;
 
     public Clickhouse(Map config) { super (config); }
@@ -105,13 +108,23 @@ public class Clickhouse extends BaseOutput {
         this.jdbcLink = String.format("jdbc:clickhouse://%s/%s", this.host, this.database);
 
         ClickHouseProperties properties = new ClickHouseProperties();
-        BalancedClickhouseDataSource dataSource = new BalancedClickhouseDataSource(this.jdbcLink, properties);
+        properties.setUseServerTimeZone(false);
+        this.dataSource = new BalancedClickhouseDataSource(this.jdbcLink, properties);
         if (this.withCredit) {
             ClickHouseProperties withCredentials = properties.withCredentials(this.user, this.password);
-            dataSource = new BalancedClickhouseDataSource(this.jdbcLink, withCredentials);
+            this.dataSource = new BalancedClickhouseDataSource(this.jdbcLink, withCredentials);
         }
+
         try {
-            this.schema = ClickhouseUtils.getSchema(dataSource, this.table);
+            this.conn = (ClickHouseConnectionImpl) dataSource.getConnection();
+        } catch (Exception e) {
+            log.error("cannot connection to datasource");
+            log.error(e);
+            System.exit(1);
+        }
+
+        try {
+            this.schema = ClickhouseUtils.getSchema(this.conn, this.table);
         } catch (SQLException e) {
             log.error("input table is not vaild");
             System.exit(1);
@@ -207,21 +220,10 @@ public class Clickhouse extends BaseOutput {
         log.debug("make up SQL start, number: " + this.bulkNum);
         StringBuilder sqls = makeUpSql(events);
         log.debug("make up SQL end, number: " + this.bulkNum);
-        ClickHouseProperties properties = new ClickHouseProperties();
-        properties.setUseServerTimeZone(false);
 
-        BalancedClickhouseDataSource balanced = new BalancedClickhouseDataSource(this.jdbcLink, properties);
-
-        if (this.withCredit) {
-            ClickHouseProperties withCredentials = properties.withCredentials(this.user, this.password);
-            balanced = new BalancedClickhouseDataSource(this.jdbcLink, withCredentials);
-        }
-
-        Connection conn = balanced.getConnection();
         try {
             log.trace(sqls);
-            conn.createStatement().execute(sqls.toString());
-            conn.close();
+            this.conn.createStatement().execute(sqls.toString());
         } catch (SQLException e) {
             log.error(e);
             log.debug(sqls.toString());
@@ -232,7 +234,6 @@ public class Clickhouse extends BaseOutput {
         } catch (Exception e) {
             log.error(e);
         }
-        conn.close();
     }
 
     private void eventInsert(Map event) throws Exception {
