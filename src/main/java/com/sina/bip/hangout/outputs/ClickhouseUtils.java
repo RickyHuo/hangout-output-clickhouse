@@ -1,7 +1,7 @@
 package com.sina.bip.hangout.outputs;
 
+import ru.yandex.clickhouse.BalancedClickhouseDataSource;
 import ru.yandex.clickhouse.ClickHouseConnectionImpl;
-import ru.yandex.clickhouse.ClickHouseDataSource;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -19,9 +19,8 @@ import java.text.SimpleDateFormat;
 
 public class ClickhouseUtils {
 
-    public static Map<String, String> getSchema(ClickHouseDataSource dataSource, String table) throws SQLException {
+    public static Map<String, String> getSchema(ClickHouseConnectionImpl connection, String table) throws SQLException {
 
-        ClickHouseConnectionImpl connection = (ClickHouseConnectionImpl) dataSource.getConnection();
         String sql = String.format("desc %s", table);
         ResultSet resultSet = connection.createStatement().executeQuery(sql);
         Map schema = new HashMap<String, String>();

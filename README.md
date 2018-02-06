@@ -2,7 +2,7 @@
 
 * Author: rickyHuo
 * Homepage: https://github.com/RickyHuo/hangout-output-clickhouse
-* Version: 0.0.3
+* Version: 0.0.4
 
 ### Description
 
@@ -69,8 +69,9 @@ outputs:
         database: apm
         table: apm_netdiagno
         fields: ['_device_id', '_ping_small', '_domain', '_traceroute', '_ping_big', 'date', 'ts', '_snet']
+        replace_include_fields: ['_ping_big']
         bulk_size: 500
 ```
 
-> 将fields中对应的字段写入ClickHouse
+> 将fields中对应的字段写入ClickHouse，且对`_ping_big`字段中的单引号进行转义
 
