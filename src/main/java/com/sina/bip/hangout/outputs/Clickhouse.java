@@ -1,6 +1,5 @@
 package com.sina.bip.hangout.outputs;
 
-import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -16,7 +15,7 @@ import ru.yandex.clickhouse.ClickHouseConnectionImpl;
 import ru.yandex.clickhouse.settings.ClickHouseProperties;
 
 /**
- * Created by huochen on 2017/09/23.
+ * Created by RickyHuo on 2017/09/23.
  */
 
 
@@ -132,6 +131,8 @@ public class Clickhouse extends BaseOutput {
 
         this.templateRenderMap = new HashMap<>();
         for (String field: fields) {
+
+            // Check remote clickhouse tables whether contain all field or not
             if (!this.schema.containsKey(ClickhouseUtils.realField(field))) {
                 String msg = String.format("table [%s] doesn't contain field '%s'", this.table, field);
                 log.error(msg);
