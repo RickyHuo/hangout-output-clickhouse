@@ -1,6 +1,5 @@
 package com.sina.bip.hangout.outputs;
 
-import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -12,11 +11,11 @@ import com.ctrip.ops.sysdev.render.TemplateRender;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import ru.yandex.clickhouse.BalancedClickhouseDataSource;
-import ru.yandex.clickhouse.ClickHouseDataSource;
+import ru.yandex.clickhouse.ClickHouseConnectionImpl;
 import ru.yandex.clickhouse.settings.ClickHouseProperties;
 
 /**
- * Created by huochen on 2017/09/23.
+ * Created by RickyHuo on 2017/09/23.
  */
 
 
@@ -40,6 +39,8 @@ public class Clickhouse extends BaseOutput {
     private Boolean withCredit;
     private String user;
     private String password;
+    private BalancedClickhouseDataSource dataSource;
+    private ClickHouseConnectionImpl conn;
     private Map<String, TemplateRender> templateRenderMap;
 
     public Clickhouse(Map config) { super (config); }
@@ -105,18 +106,24 @@ public class Clickhouse extends BaseOutput {
 
         this.jdbcLink = String.format("jdbc:clickhouse://%s/%s", this.host, this.database);
 
-        // ClickHouseDataSource 不支持逗号","分割的多个节点
-        String databaseSource = String.format("jdbc:clickhouse://%s/%s", this.host.split(",")[0], this.database);
         ClickHouseProperties properties = new ClickHouseProperties();
-
-
-        ClickHouseDataSource dataSource = new ClickHouseDataSource(databaseSource);
+        properties.setUseServerTimeZone(false);
+        this.dataSource = new BalancedClickhouseDataSource(this.jdbcLink, properties);
         if (this.withCredit) {
             ClickHouseProperties withCredentials = properties.withCredentials(this.user, this.password);
-            dataSource = new ClickHouseDataSource(databaseSource, withCredentials);
+            this.dataSource = new BalancedClickhouseDataSource(this.jdbcLink, withCredentials);
         }
+
         try {
-            this.schema = ClickhouseUtils.getSchema(dataSource, this.table);
+            this.conn = (ClickHouseConnectionImpl) dataSource.getConnection();
+        } catch (Exception e) {
+            log.error("cannot connection to datasource");
+            log.error(e);
+            System.exit(1);
+        }
+
+        try {
+            this.schema = ClickhouseUtils.getSchema(this.conn, this.table);
         } catch (SQLException e) {
             log.error("input table is not vaild");
             System.exit(1);
@@ -124,6 +131,8 @@ public class Clickhouse extends BaseOutput {
 
         this.templateRenderMap = new HashMap<>();
         for (String field: fields) {
+
+            // Check remote clickhouse tables whether contain all field or not
             if (!this.schema.containsKey(ClickhouseUtils.realField(field))) {
                 String msg = String.format("table [%s] doesn't contain field '%s'", this.table, field);
                 log.error(msg);
@@ -212,19 +221,10 @@ public class Clickhouse extends BaseOutput {
         log.debug("make up SQL start, number: " + this.bulkNum);
         StringBuilder sqls = makeUpSql(events);
         log.debug("make up SQL end, number: " + this.bulkNum);
-        ClickHouseProperties properties = new ClickHouseProperties();
 
-        BalancedClickhouseDataSource balanced = new BalancedClickhouseDataSource(this.jdbcLink, properties);
-
-        if (this.withCredit) {
-            ClickHouseProperties withCredentials = properties.withCredentials(this.user, this.password);
-            balanced = new BalancedClickhouseDataSource(this.jdbcLink, withCredentials);
-        }
-
-        Connection conn = balanced.getConnection();
         try {
-            conn.createStatement().execute(sqls.toString());
-            conn.close();
+            log.trace(sqls);
+            this.conn.createStatement().execute(sqls.toString());
         } catch (SQLException e) {
             log.error(e);
             log.debug(sqls.toString());
@@ -235,7 +235,6 @@ public class Clickhouse extends BaseOutput {
         } catch (Exception e) {
             log.error(e);
         }
-        conn.close();
     }
 
     private void eventInsert(Map event) throws Exception {
