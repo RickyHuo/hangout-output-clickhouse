@@ -47,6 +47,7 @@ public class Clickhouse extends BaseOutput {
 
     protected void prepare() {
         this.events = new ArrayList<>();
+        this.templateRenderMap = new HashMap<>();
 
         if (!this.config.containsKey("host")) {
             log.error("hostname must be included in config");
@@ -83,40 +84,11 @@ public class Clickhouse extends BaseOutput {
             this.bulkSize = BULKSIZE;
         }
 
-        if (this.config.containsKey("format")) {
-            this.format = (String) this.config.get("format");
-            if (!this.formats.contains(this.format)) {
-                log.error("Not support format: " + this.format);
-                System.exit(1);
-            }
-        } else {
-            this.format = "TabSeparated";
-        }
-
-        if (this.config.containsKey("fields")) {
-            this.fields = (List<String>) this.config.get("fields");
-        } else {
-            log.error("fields must be included in config");
-            System.exit(1);
-        }
-
-        if (this.config.containsKey("replace_include_fields")) {
-            this.replace_include_fields = (List<String>) this.config.get("replace_include_fields");
-        }
-
-        if (this.config.containsKey("replace_exclude_fields")) {
-            this.replace_exclude_fields = (List<String>) this.config.get("replace_exclude_fields");
-        }
-
-        if (this.config.containsKey("replace_include_fields") && this.config.containsKey("replace_exclude_fields")) {
-            log.error("Replace_include_fields and replace_exclude_fields exist at the same time, " +
-                    "please use one of them.");
-            System.exit(1);
-        }
-
+        // 连接验证
         this.jdbcLink = String.format("jdbc:clickhouse://%s/%s", this.host, this.database);
 
         ClickHouseProperties properties = new ClickHouseProperties();
+        // 避免每次INSERT操作取服务器时间
         properties.setUseServerTimeZone(false);
         this.dataSource = new BalancedClickhouseDataSource(this.jdbcLink, properties);
         if (this.withCredit) {
@@ -127,7 +99,7 @@ public class Clickhouse extends BaseOutput {
         try {
             this.conn = (ClickHouseConnectionImpl) dataSource.getConnection();
         } catch (Exception e) {
-            log.error("cannot connection to datasource");
+            log.error("Cannot connection to datasource");
             log.error(e);
             System.exit(1);
         }
@@ -139,18 +111,52 @@ public class Clickhouse extends BaseOutput {
             System.exit(1);
         }
 
-        this.templateRenderMap = new HashMap<>();
-        for (String field: fields) {
-            if (!this.schema.containsKey(ClickhouseUtils.realField(field))) {
-                String msg = String.format("table [%s] doesn't contain field '%s'", this.table, field);
-                log.error(msg);
+
+        if (this.config.containsKey("format")) {
+            this.format = (String) this.config.get("format");
+            if (!this.formats.contains(this.format)) {
+                log.error("Not support format: " + this.format);
                 System.exit(1);
             }
-            try {
-                this.templateRenderMap.put(field, TemplateRender.getRender(field, false));
-            } catch (Exception e) {
-                String msg = String.format("cannot get templateRender of field [%s]", field);
-                log.warn(msg);
+        } else {
+            this.format = "TabSeparated";
+        }
+
+        if (this.format.equals("TabSeparated")) {
+
+            if (this.config.containsKey("fields")) {
+                this.fields = (List<String>) this.config.get("fields");
+            } else {
+                log.error("fields must be included in config");
+                System.exit(1);
+            }
+
+            if (this.config.containsKey("replace_include_fields")) {
+                this.replace_include_fields = (List<String>) this.config.get("replace_include_fields");
+            }
+
+            if (this.config.containsKey("replace_exclude_fields")) {
+                this.replace_exclude_fields = (List<String>) this.config.get("replace_exclude_fields");
+            }
+
+            if (this.config.containsKey("replace_include_fields") && this.config.containsKey("replace_exclude_fields")) {
+                log.error("Replace_include_fields and replace_exclude_fields exist at the same time, " +
+                        "please use one of them.");
+                System.exit(1);
+            }
+
+            for (String field: fields) {
+                if (!this.schema.containsKey(ClickhouseUtils.realField(field))) {
+                    String msg = String.format("table [%s] doesn't contain field '%s'", this.table, field);
+                    log.error(msg);
+                    System.exit(1);
+                }
+                try {
+                    this.templateRenderMap.put(field, TemplateRender.getRender(field, false));
+                } catch (Exception e) {
+                    String msg = String.format("cannot get templateRender of field [%s]", field);
+                    log.warn(msg);
+                }
             }
         }
 
@@ -168,7 +174,7 @@ public class Clickhouse extends BaseOutput {
             log.debug("init sql: "+ init);
             return init;
         } else {
-            String init = String.format("insert into %s format JSONEachRow ");
+            String init = String.format("insert into %s format JSONEachRow ", this.table);
             log.debug("init sql: "+ init);
             return init;
         }
