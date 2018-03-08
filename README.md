@@ -2,7 +2,7 @@
 
 * Author: rickyHuo
 * Homepage: https://github.com/RickyHuo/hangout-output-clickhouse
-* Version: 0.0.4
+* Version: 0.0.5
 
 ### Description
 
@@ -93,4 +93,4 @@ outputs:
         table: apm_netdiagno
         bulk_size: 500
 ```
-> 使用`JSONEachRow`将数据写入ClickHouse
+> 使用`JSONEachRow`将数据写入ClickHouse，使用时务必保证清洗后的数据没有多余的字段
