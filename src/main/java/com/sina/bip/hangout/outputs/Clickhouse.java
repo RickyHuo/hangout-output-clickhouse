@@ -19,7 +19,7 @@ import ru.yandex.clickhouse.settings.ClickHouseProperties;
 
 public class Clickhouse extends BaseOutput {
 
-    private static List<String> formats = Arrays.asList("TabSeparated", "JSONEachRow");
+    private static List<String> formats = Arrays.asList("Values", "JSONEachRow");
     private static final Logger log = LogManager.getLogger(Clickhouse.class);
     private final static int BULKSIZE = 1000;
 
@@ -119,10 +119,10 @@ public class Clickhouse extends BaseOutput {
                 System.exit(1);
             }
         } else {
-            this.format = "TabSeparated";
+            this.format = "Values";
         }
 
-        if (this.format.equals("TabSeparated")) {
+        if (this.format.equals("Values")) {
 
             if (this.config.containsKey("fields")) {
                 this.fields = (List<String>) this.config.get("fields");
@@ -164,7 +164,7 @@ public class Clickhouse extends BaseOutput {
 
     private String initSql() {
 
-        if (this.format.equals("TabSeparated")) {
+        if (this.format.equals("Values")) {
             List<String> realFields = new ArrayList<>();
             for(String field: fields) {
                 realFields.add(ClickhouseUtils.realField(field));
@@ -201,7 +201,7 @@ public class Clickhouse extends BaseOutput {
 
         StringBuilder sqls = new StringBuilder(preSql);
 
-        if ((this.format.equals("TabSeparated"))) {
+        if ((this.format.equals("Values"))) {
             for(Map e: events) {
                 StringBuilder value = new StringBuilder("(");
                 for(String field: fields) {

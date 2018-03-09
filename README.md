@@ -15,7 +15,7 @@
 | [bulk_size](#bulk_size-list) | int | no | 1000 |
 | [database](#database-string) | string | yes | - |
 | [fields](#fields-list) | list | yes | - |
-| [format](#format-string) | string | no | TabSeparated |
+| [format](#format-string) | string | no | Values |
 | [host](#host-string) | string | yes | - |
 | [replace_include_fields](#replace_include_fields-list) | list | no | - |
 | [replace_exclude_fields](#replace_exclude_fields-list) | list | no | - |
@@ -39,7 +39,7 @@ table fields， 必须和Hangout清洗后的字段保持一致
 
 数据插入格式[Format Introduction](https://clickhouse.yandex/docs/en/formats/)
 
-当前支持`TabSeparated`以及`JSONEachRow`
+当前支持`Values`以及`JSONEachRow`
 
 ##### host [string]
 
@@ -80,7 +80,7 @@ outputs:
         bulk_size: 500
 ```
 
-> 使用默认的`TabSeparated`将fields中对应的字段写入ClickHouse，且对`_ping_big`字段中的单引号进行转义
+> 将fields中对应的字段写入ClickHouse，且对`_ping_big`字段中的单引号进行转义
 
 ```
 outputs:
