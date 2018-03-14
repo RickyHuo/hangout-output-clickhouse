@@ -39,6 +39,7 @@ public class Clickhouse extends BaseOutput {
     private Boolean withCredit;
     private String user;
     private String password;
+    private Double fraction;
     private BalancedClickhouseDataSource dataSource;
     private ClickHouseConnectionImpl conn;
     private Map<String, TemplateRender> templateRenderMap;
@@ -48,6 +49,17 @@ public class Clickhouse extends BaseOutput {
     protected void prepare() {
         this.events = new ArrayList<>();
         this.templateRenderMap = new HashMap<>();
+
+        if (this.config.containsKey("fraction")) {
+            this.fraction = (Double) this.config.get("fraction");
+        } else {
+            this.fraction = 1.0;
+        }
+
+        if (this.fraction <= 0 || this.fraction > 1) {
+            log.error("invalid fraction");
+            System.exit(1);
+        }
 
         if (!this.config.containsKey("host")) {
             log.error("hostname must be included in config");
@@ -246,6 +258,13 @@ public class Clickhouse extends BaseOutput {
     private void bulkInsert(List<Map> events) throws Exception {
 
         log.debug("make up SQL start, number: " + this.bulkNum);
+
+        // Sampling
+        if (this.fraction != 1L) {
+            Collections.shuffle(events);
+            events = events.subList(0, (int)(this.bulkSize * fraction));
+        }
+        log.debug("Events length: " + events.size());
         StringBuilder sqls = makeUpSql(events);
         log.debug("make up SQL end, number: " + this.bulkNum);
 
