@@ -14,13 +14,12 @@ import org.apache.logging.log4j.Logger;
 
 public class Clickhouse extends BaseOutput {
 
-    private static List<String> formats = Arrays.asList("Values", "JSONEachRow");
+    private static List<String> formats = Arrays.asList("Values", "JSONEachRow", "TabSeparated");
     private static final Logger log = LogManager.getLogger(Clickhouse.class);
     private final static int BULKSIZE = 1000;
 
     private int bulkNum = 0;
     private int bulkSize;
-    private String format;
     private List<Map> events;
     private FormatParse formatParse;
 
@@ -30,19 +29,26 @@ public class Clickhouse extends BaseOutput {
 
     protected void prepare() {
 
+        String format = "Values";
+
         if (this.config.containsKey("format")) {
-            this.format = (String) this.config.get("format");
-            if (!this.formats.contains(this.format)) {
-                log.error("Not support format: " + this.format);
+            format = (String) this.config.get("format");
+            if (!this.formats.contains(format)) {
+                log.error("Not support format: " + format);
                 System.exit(1);
             }
-            if (this.format.equals("JSONEachRow")) {
+        }
+
+        switch (format) {
+            case "JSONEachRow":
                 this.formatParse = new JSONEachRow(config);
-            } else {
+                break;
+            case "Values":
                 this.formatParse = new Values(config);
-            }
-        } else {
-            this.formatParse = new Values(config);
+                break;
+            case "TabSeparated":
+                this.formatParse = new TabSeparated(config);
+                break;
         }
 
         this.formatParse.prepare();

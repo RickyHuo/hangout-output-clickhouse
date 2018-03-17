@@ -99,6 +99,7 @@ public class JSONEachRow implements FormatParse {
     private String initSql() {
 
         String init = String.format("insert into %s format JSONEachRow", this.table);
+        log.debug("init sql: " + init);
         return init;
     }
 
