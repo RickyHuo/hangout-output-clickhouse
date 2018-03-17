@@ -7,23 +7,22 @@ import ru.yandex.clickhouse.BalancedClickhouseDataSource;
 import ru.yandex.clickhouse.ClickHouseConnectionImpl;
 import ru.yandex.clickhouse.settings.ClickHouseProperties;
 
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class Values implements FormatParse {
+public class TabSeparated implements FormatParse {
 
-    private static final Logger log = LogManager.getLogger(Values.class);
+    private static final Logger log = LogManager.getLogger(TabSeparated.class);
     private Map config;
     private String host;
     private String database;
     private String table;
     private String jdbcLink;
     private List<String> fields;
-    private List<String> replace_include_fields;
-    private List<String> replace_exclude_fields;
     private Map<String, String> schema;
     private Boolean withCredit;
     private String user;
@@ -33,7 +32,7 @@ public class Values implements FormatParse {
     private ClickHouseConnectionImpl conn;
     private Map<String, TemplateRender> templateRenderMap;
 
-    public Values(Map config) {
+    public TabSeparated(Map config) {
         this.config = config;
     }
 
@@ -116,20 +115,6 @@ public class Values implements FormatParse {
             System.exit(1);
         }
 
-        if (this.config.containsKey("replace_include_fields")) {
-            this.replace_include_fields = (List<String>) this.config.get("replace_include_fields");
-        }
-
-        if (this.config.containsKey("replace_exclude_fields")) {
-            this.replace_exclude_fields = (List<String>) this.config.get("replace_exclude_fields");
-        }
-
-        if (this.config.containsKey("replace_include_fields") && this.config.containsKey("replace_exclude_fields")) {
-            log.error("Replace_include_fields and replace_exclude_fields exist at the same time, " +
-                    "please use one of them.");
-            System.exit(1);
-        }
-
         for (String field: fields) {
             if (!this.schema.containsKey(ClickhouseUtils.realField(field))) {
                 String msg = String.format("table [%s] doesn't contain field '%s'", this.table, field);
@@ -151,78 +136,51 @@ public class Values implements FormatParse {
         for(String field: this.fields) {
             realFields.add(ClickhouseUtils.realField(field));
         }
-        String init = String.format("insert into %s (%s) values", this.table, String.join(" ,", realFields));
+
+        String init = String.format("insert into %s (%s) values (%s)", this.table,
+                String.join(", ", realFields),
+                ClickhouseUtils.tabSeparatedPreSql(this.fields.size()));
+
         log.debug("init sql: " + init);
         return init;
     }
 
     public void bulkInsert(List<Map> events) throws Exception {
 
-        StringBuilder wholeSql = makeUpSql(events);
-        try {
-            log.trace(wholeSql);
-            this.conn.createStatement().execute(wholeSql.toString());
-        } catch (SQLException e) {
-            log.error(wholeSql.toString());
-            log.error(e);
-        } catch (Exception e) {
-            log.error(e);
-        }
-    }
+        PreparedStatement statement = this.conn.createPreparedStatement(this.initSql());
 
-    protected StringBuilder makeUpSql(List<Map> events) {
-        StringBuilder sqls = new StringBuilder(this.initSql());
+        int size = fields.size();
         for (Map e: events) {
-            StringBuilder value = new StringBuilder("(");
-            for(String field: fields) {
-                Object fieldValue = this.templateRenderMap.get(field).render(e);
-                if (fieldValue != null) {
-                    if (fieldValue instanceof String) {
-                        if ((this.replace_include_fields != null && this.replace_include_fields.contains(field)) ||
-                                (this.replace_exclude_fields != null && !this.replace_exclude_fields.contains(field))) {
-                            value.append("'");
-                            value.append(dealWithQuote(fieldValue.toString()));
-                            value.append("'");
-                        } else {
-                            value.append("'");
-                            value.append(fieldValue.toString());
-                            value.append("'");
-                        }
-                    } else {
-                        if (e.get(field) == null){
-                            value.append("''");
-                        } else {
-                            value.append(e.get(field));
-                        }
-                    }
-                } else {
-                    value.append(ClickhouseUtils.renderDefault(this.schema.get(ClickhouseUtils.realField(field))));
-                }
-                if (fields.indexOf(field) != fields.size() -1) {
-                    value.append(",");
+            statement.setString(1, "sd");
+
+            for (int i=0; i<size; i++) {
+                String field = fields.get(i);
+                String fieldType = this.schema.get(ClickhouseUtils.realField(field));
+                switch (fieldType) {
+                    case "Int8":
+                    case "Int16":
+                    case "Int32":
+                    case "Int64":
+                    case "UInt8":
+                    case "UInt16":
+                    case "UInt32":
+                    case "UInt64":
+                        statement.setInt(i + 1, (int) this.templateRenderMap.get(field).render(e));
+                        break;
+                    case "String":
+                    case "DateTime":
+                    case "Date":
+                        statement.setString(i + 1, this.templateRenderMap.get(field).render(e).toString());
+                        break;
+                    case "Float32":
+                    case "Float64":
+                        statement.setFloat(i + 1, (float) this.templateRenderMap.get(field).render(e));
+                        break;
                 }
             }
-            value.append(")");
-            sqls.append(value);
+            statement.addBatch();
         }
-        return sqls;
-    }
-
-    private String dealWithQuote(String str) {
-        /*
-        * 因为Clickhouse SQL语句必须用单引号'， 例如：
-        * insert into test.test (date, value) values ('2017-10-29', '23')
-        * SQL语句需要将数值中的单引号'转义
-        * */
-
-        if (!str.contains("'")) {
-            return str;
-        } else if (str.indexOf("\\'") > 0) {
-//            deal with "\'"
-            return str.replace("'", "\\'").replace("\\\\'", "\\\\\\'");
-        } else {
-            return str.replace("'", "\\'");
-        }
+        statement.executeBatch();
     }
 
 }

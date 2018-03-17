@@ -5,10 +5,7 @@ import ru.yandex.clickhouse.ClickHouseConnectionImpl;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.text.SimpleDateFormat;
@@ -62,5 +59,14 @@ public class ClickhouseUtils {
         } else {
             return fields.get(size - 1);
         }
+    }
+
+    public static String tabSeparatedPreSql(int size) {
+        List<String> list = new ArrayList<>();
+        for (int i=0; i<size; i++) {
+            list.add("?");
+        }
+
+        return String.join(", ", list);
     }
 }
