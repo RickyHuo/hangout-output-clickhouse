@@ -171,46 +171,66 @@ public class Values implements FormatParse {
     }
 
     protected StringBuilder makeUpSql(List<Map> events) {
-        StringBuilder sqls = new StringBuilder(this.initSql());
+        StringBuilder wholeSql = new StringBuilder(this.initSql());
         for (Map e: events) {
             StringBuilder value = new StringBuilder("(");
             for(String field: fields) {
                 Object fieldValue = this.templateRenderMap.get(field).render(e);
+                String fieldType = this.schema.get(ClickhouseUtils.realField(field));
                 if (fieldValue != null) {
-                    if (fieldValue instanceof String) {
-                        if ((this.replace_include_fields != null && this.replace_include_fields.contains(field)) ||
-                                (this.replace_exclude_fields != null && !this.replace_exclude_fields.contains(field))) {
-                            value.append("'");
-                            value.append(dealWithQuote(fieldValue.toString()));
-                            value.append("'");
-                        } else {
-                            value.append("'");
-                            value.append(fieldValue.toString());
-                            value.append("'");
-                        }
-                    } else {
-                        if (e.get(field) == null){
-                            value.append("''");
-                        } else {
+                    switch (fieldType) {
+                        case "String":
+                        case "DateTime":
+                        case "Date":
+                            if ((this.replace_include_fields != null && this.replace_include_fields.contains(field)) ||
+                                    (this.replace_exclude_fields != null && !this.replace_exclude_fields.contains(field))) {
+                                value.append("'");
+                                value.append(dealWithString(fieldValue.toString(), true));
+                                value.append("'");
+                            } else {
+                                value.append("'");
+                                value.append(dealWithString(fieldValue.toString(), false));
+                                value.append("'");
+                            }
+                            break;
+                        case "Int8":
+                        case "Int16":
+                        case "Int32":
+                        case "Int64":
+                        case "UInt8":
+                        case "UInt16":
+                        case "UInt32":
+                        case "UInt64":
+                        case "Float32":
+                        case "Float64":
                             value.append(e.get(field));
-                        }
+                            break;
                     }
                 } else {
                     value.append(ClickhouseUtils.renderDefault(this.schema.get(ClickhouseUtils.realField(field))));
                 }
+
                 if (fields.indexOf(field) != fields.size() -1) {
                     value.append(",");
                 }
             }
             value.append(")");
-            sqls.append(value);
+            wholeSql.append(value);
         }
-        return sqls;
+        return wholeSql;
+    }
+
+    private String dealWithString(String str, Boolean bol) {
+        if (bol) {
+            return dealWithQuote(str);
+        } else {
+            return str;
+        }
     }
 
     private String dealWithQuote(String str) {
         /*
-        * 因为Clickhouse SQL语句必须用单引号'， 例如：
+        * 因为Values形式ClickHouse SQL语句必须用单引号'， 例如：
         * insert into test.test (date, value) values ('2017-10-29', '23')
         * SQL语句需要将数值中的单引号'转义
         * */
@@ -218,7 +238,7 @@ public class Values implements FormatParse {
         if (!str.contains("'")) {
             return str;
         } else if (str.indexOf("\\'") > 0) {
-//            deal with "\'"
+        // deal with "\'"
             return str.replace("'", "\\'").replace("\\\\'", "\\\\\\'");
         } else {
             return str.replace("'", "\\'");
