@@ -156,6 +156,7 @@ public class TabSeparated implements FormatParse {
             for (int i=0; i<size; i++) {
                 String field = fields.get(i);
                 String fieldType = this.schema.get(ClickhouseUtils.realField(field));
+                Object fieldValue = this.templateRenderMap.get(field).render(e);
                 switch (fieldType) {
                     case "Int8":
                     case "Int16":
@@ -164,17 +165,65 @@ public class TabSeparated implements FormatParse {
                     case "UInt8":
                     case "UInt16":
                     case "UInt32":
+                        if (fieldValue != null) {
+                            try {
+                                int v = ((Number) fieldValue).intValue();
+                                statement.setInt(i + 1, v);
+
+                            } catch (Exception exp) {
+                                String msg = String.format("Cannot Convert %s %s to integer, render default", fieldValue.getClass(), fieldValue);
+                                log.warn(msg);
+                                log.error(exp);
+                                statement.setInt(i + 1, 0);
+                            }
+                        } else {
+                            statement.setInt(i + 1, 0);
+                        }
+
+                        break;
+
                     case "UInt64":
-                        statement.setInt(i + 1, (int) this.templateRenderMap.get(field).render(e));
+                        if (fieldValue != null) {
+                            try {
+                                long v = ((Number) fieldValue).longValue();
+                                statement.setLong(i + 1, v);
+
+                            } catch (Exception exp) {
+                                String msg = String.format("Cannot Convert %s %s to long, render default", fieldValue.getClass(), fieldValue);
+                                log.warn(msg);
+                                log.error(exp);
+                                statement.setInt(i + 1, 0);
+                            }
+                        } else {
+                            statement.setInt(i + 1, 0);
+                        }
+
                         break;
                     case "String":
                     case "DateTime":
                     case "Date":
-                        statement.setString(i + 1, this.templateRenderMap.get(field).render(e).toString());
+                        if (fieldValue != null) {
+                            statement.setString(i + 1, fieldValue.toString());
+                        } else {
+                            statement.setString(i + 1, "");
+                        }
                         break;
                     case "Float32":
                     case "Float64":
-                        statement.setFloat(i + 1, (float) this.templateRenderMap.get(field).render(e));
+                        if (fieldValue != null) {
+                            try {
+                                float v = ((Number) fieldValue).floatValue();
+                                statement.setFloat(i + 1, v);
+                            } catch (Exception exp) {
+                                String msg = String.format("Cannot Convert %s %s to float, render default", fieldValue.getClass(), fieldValue);
+                                log.warn(msg);
+                                log.error(exp);
+                                statement.setFloat(i + 1, 0f);
+                            }
+                        } else {
+                            statement.setFloat(i + 1, 0f);
+                        }
+
                         break;
                 }
             }
