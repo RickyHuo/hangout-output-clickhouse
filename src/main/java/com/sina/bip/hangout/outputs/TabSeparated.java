@@ -161,10 +161,8 @@ public class TabSeparated implements FormatParse {
                     case "Int8":
                     case "Int16":
                     case "Int32":
-                    case "Int64":
                     case "UInt8":
                     case "UInt16":
-                    case "UInt32":
                         if (fieldValue != null) {
                             try {
                                 int v = ((Number) fieldValue).intValue();
@@ -183,6 +181,8 @@ public class TabSeparated implements FormatParse {
                         break;
 
                     case "UInt64":
+                    case "Int64":
+                    case "UInt32":
                         if (fieldValue != null) {
                             try {
                                 long v = ((Number) fieldValue).longValue();
