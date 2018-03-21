@@ -35,12 +35,16 @@ public class ClickhouseUtils {
         else if (dataType.equals("Date")) {
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
             return String.format("'%s'", dateFormat.format(new Date()));
-        }
-        else if (dataType.equals("DataTime")) {
+        } else if (dataType.equals("DataTime")) {
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
             return String.format("'%s'", dateFormat.format(new Date()));
-        } else
+        } else if (dataType.startsWith("Float")) {
+            return "0.0";
+        } else if (dataType.startsWith("UInt") || dataType.startsWith("Int")) {
+            return "0";
+        } else {
             return "";
+        }
     }
 
     public static String realField(String field) {
