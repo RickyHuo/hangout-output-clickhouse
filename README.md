@@ -2,7 +2,7 @@
 
 * Author: rickyHuo
 * Homepage: https://github.com/RickyHuo/hangout-output-clickhouse
-* Version: 0.0.5
+* Version: 0.0.6
 
 ### Description
 
@@ -39,7 +39,9 @@ table fields， 必须和Hangout清洗后的字段保持一致
 
 数据插入格式[Format Introduction](https://clickhouse.yandex/docs/en/formats/)
 
-当前支持`Values`以及`JSONEachRow`
+当前支持`Values`、`JSONEachRow`以及`TabSeparated`
+
+[Format Performance TEST](./docs/jdbc_format.md)
 
 ##### host [string]
 
@@ -94,3 +96,18 @@ outputs:
         bulk_size: 500
 ```
 > 使用`JSONEachRow`将数据写入ClickHouse，使用时务必保证清洗后的数据没有多余的字段
+
+```
+outputs:
+    - com.sina.bip.hangout.outputs.Clickhouse:
+        host: clickhouse.bip.sina.com.cn:8123
+        format: TabSeparated
+        username: user
+        password: passwd
+        database: apm
+        table: apm_netdiagno
+        fields: ['_device_id', '_ping_small', '_domain', '_traceroute', '_ping_big', 'date', 'ts', '_snet']
+        bulk_size: 500
+```
+
+> 将fields中对应的字段写入ClickHouse
