@@ -67,7 +67,7 @@ public class Clickhouse extends BaseOutput {
     private void eventInsert(Map event, int eventSize) throws Exception {
 
         this.events.add(event);
-        if (this.events.size() == eventSize) {
+        if (this.events.size() >= eventSize) {
             log.info("Insert bulk start, number: " + this.bulkNum);
             this.formatParse.bulkInsert(events);
             log.info("Insert bulk end, number: " + this.bulkNum);
