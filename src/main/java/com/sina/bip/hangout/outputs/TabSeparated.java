@@ -151,7 +151,7 @@ public class TabSeparated implements FormatParse {
 
         int size = fields.size();
         for (Map e: events) {
-            statement.setString(1, "sd");
+            //statement.setString(1, "sd");
 
             for (int i=0; i<size; i++) {
                 String field = fields.get(i);
@@ -169,7 +169,7 @@ public class TabSeparated implements FormatParse {
                                 statement.setInt(i + 1, v);
 
                             } catch (Exception exp) {
-                                String msg = String.format("Cannot Convert %s %s to integer, render default", fieldValue.getClass(), fieldValue);
+                                String msg = String.format("Cannot Convert %s %s to integer, render default. Field is %s", fieldValue.getClass(), fieldValue, field);
                                 log.warn(msg);
                                 log.error(exp);
                                 statement.setInt(i + 1, 0);
@@ -225,6 +225,15 @@ public class TabSeparated implements FormatParse {
                         }
 
                         break;
+                    case "Array(String)":
+                        if (fieldValue != null) {
+                            List<String> v = (List) fieldValue;
+                            String [] array = v.toArray(new String[v.size()]);
+                            statement.setArray(i + 1, this.conn.createArrayOf("string", array));
+                        } else {
+                            statement.setArray(i + 1, this.conn.createArrayOf("string", new String[1]));
+                        }
+
                 }
             }
             statement.addBatch();
