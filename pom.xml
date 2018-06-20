@@ -39,6 +39,11 @@
             <version>2.7</version>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>com.github.housepower</groupId>
+            <artifactId>clickhouse-native-jdbc</artifactId>
+            <version>1.0-testing</version>
+        </dependency>
     </dependencies>
 
     <build>

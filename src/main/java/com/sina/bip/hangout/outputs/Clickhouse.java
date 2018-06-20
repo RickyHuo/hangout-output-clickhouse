@@ -14,7 +14,6 @@ import org.apache.logging.log4j.Logger;
 
 public class Clickhouse extends BaseOutput {
 
-    private static List<String> formats = Arrays.asList("Values", "JSONEachRow", "TabSeparated");
     private static final Logger log = LogManager.getLogger(Clickhouse.class);
     private final static int BULKSIZE = 1000;
 
@@ -29,15 +28,8 @@ public class Clickhouse extends BaseOutput {
 
     protected void prepare() {
 
-        String format = "Values";
-
-        if (this.config.containsKey("format")) {
-            format = (String) this.config.get("format");
-            if (!this.formats.contains(format)) {
-                log.error("Not support format: " + format);
-                System.exit(1);
-            }
-        }
+        String format = "TabSeparated";
+        format = (String) this.config.get("format");
 
         switch (format) {
             case "JSONEachRow":
@@ -48,6 +40,13 @@ public class Clickhouse extends BaseOutput {
                 break;
             case "TabSeparated":
                 this.formatParse = new TabSeparated(config);
+                break;
+            case "Native":
+                this.formatParse = new Native(config);
+                break;
+            default:
+                log.error("Unknown format <%s>", format);
+                System.exit(1);
                 break;
         }
 
@@ -98,7 +97,7 @@ public class Clickhouse extends BaseOutput {
             this.formatParse.bulkInsert(this.events);
         } catch (Exception e) {
             log.info("failed to bulk events before shutdown");
-            log.debug(e);
+            log.error(e);
         }
     }
 }
