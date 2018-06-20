@@ -3,6 +3,7 @@ package com.sina.bip.hangout.outputs;
 import ru.yandex.clickhouse.BalancedClickhouseDataSource;
 import ru.yandex.clickhouse.ClickHouseConnectionImpl;
 
+import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
@@ -18,6 +19,17 @@ public class ClickhouseUtils {
 
     public static Map<String, String> getSchema(ClickHouseConnectionImpl connection, String table) throws SQLException {
 
+        String sql = String.format("desc %s", table);
+        ResultSet resultSet = connection.createStatement().executeQuery(sql);
+        Map schema = new HashMap<String, String>();
+        while(resultSet.next()) {
+
+            schema.put(resultSet.getString(1), resultSet.getString(2));
+        }
+        return schema;
+    }
+
+    public static Map<String, String> getSchema(Connection connection, String table) throws SQLException {
         String sql = String.format("desc %s", table);
         ResultSet resultSet = connection.createStatement().executeQuery(sql);
         Map schema = new HashMap<String, String>();

@@ -13,6 +13,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@Deprecated
+/*
+* It can be replaced by TabSeparated with better performance
+*
+* */
 public class Values implements FormatParse {
 
     private static final Logger log = LogManager.getLogger(Values.class);
