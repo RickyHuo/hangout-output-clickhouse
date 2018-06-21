@@ -1,9 +1,8 @@
 package com.sina.bip.hangout.outputs;
 
-import ru.yandex.clickhouse.BalancedClickhouseDataSource;
+import com.github.housepower.jdbc.ClickHouseConnection;
 import ru.yandex.clickhouse.ClickHouseConnectionImpl;
 
-import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
@@ -29,8 +28,8 @@ public class ClickhouseUtils {
         return schema;
     }
 
-    public static Map<String, String> getSchema(Connection connection, String table) throws SQLException {
-        String sql = String.format("desc %s", table);
+    public static Map<String, String> getSchema(ClickHouseConnection connection, String db, String table) throws SQLException {
+        String sql = String.format("desc %s.%s", db, table);
         ResultSet resultSet = connection.createStatement().executeQuery(sql);
         Map schema = new HashMap<String, String>();
         while(resultSet.next()) {

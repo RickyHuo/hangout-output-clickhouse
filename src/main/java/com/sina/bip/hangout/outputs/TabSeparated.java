@@ -137,7 +137,8 @@ public class TabSeparated implements FormatParse {
             realFields.add(ClickhouseUtils.realField(field));
         }
 
-        String init = String.format("insert into %s (%s) values (%s)", this.table,
+        String init = String.format("insert into %s.%s (%s) values (%s)", this.database,
+                this.table,
                 String.join(", ", realFields),
                 ClickhouseUtils.tabSeparatedPreSql(this.fields.size()));
 

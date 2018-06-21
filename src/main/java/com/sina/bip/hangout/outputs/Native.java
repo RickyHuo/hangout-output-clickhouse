@@ -1,17 +1,15 @@
 package com.sina.bip.hangout.outputs;
 
 import com.ctrip.ops.sysdev.render.TemplateRender;
+import com.github.housepower.jdbc.ClickHouseConnection;
+import com.github.housepower.jdbc.settings.ClickHouseConfig;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 public class Native implements FormatParse {
 
@@ -26,8 +24,10 @@ public class Native implements FormatParse {
     private Boolean withCredit;
     private String user;
     private String password;
-    private Connection conn;
+    private ClickHouseConnection conn;
     private Map<String, TemplateRender> templateRenderMap;
+    private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+    private SimpleDateFormat datetimeFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     public Native(Map config) {
         this.config = config;
@@ -65,32 +65,28 @@ public class Native implements FormatParse {
             this.withCredit = false;
         }
 
-
         // 连接验证
-        this.jdbcLink = String.format("jdbc:clickhouse://%s/%s", this.host, this.database);
+        this.jdbcLink = String.format("jdbc:clickhouse://%s", this.host);
+        log.info(this.jdbcLink);
 
-        try {
-            Class.forName("com.github.housepower.jdbc.ClickHouseDriver");
-        } catch (ClassNotFoundException e) {
-            log.error(e);
-            System.exit(1);
+        Properties p = new Properties();
+        if (this.withCredit) {
+            p.put("user", this.user);
+            p.put("password", this.password);
         }
 
         try {
-            this.conn = DriverManager.getConnection(this.jdbcLink);
-
-            if (this.withCredit) {
-                this.conn = DriverManager.getConnection(this.jdbcLink, this.user, this.password);
-            }
-        } catch (Exception e) {
-            log.error(e);
-            log.error("Cannot connect to data source");
-            System.exit(1);
-        }
-
-        try {
-            this.schema = ClickhouseUtils.getSchema(this.conn, this.table);
+            ClickHouseConfig cf = new ClickHouseConfig(this.jdbcLink, p);
+            this.conn = ClickHouseConnection.createClickHouseConnection(cf);
         } catch (SQLException e) {
+            log.error(e);
+            System.exit(1);
+        }
+
+        try {
+            this.schema = ClickhouseUtils.getSchema(this.conn, this.database, this.table);
+        } catch (SQLException e) {
+            log.error(e);
             log.error("input table is not valid");
             System.exit(1);
         }
@@ -125,7 +121,8 @@ public class Native implements FormatParse {
             realFields.add(ClickhouseUtils.realField(field));
         }
 
-        String init = String.format("insert into %s (%s) values (%s)", this.table,
+        String init = String.format("insert into %s.%s (%s) values (%s)", this.database,
+                this.table,
                 String.join(", ", realFields),
                 ClickhouseUtils.tabSeparatedPreSql(this.fields.size()));
 
@@ -173,8 +170,8 @@ public class Native implements FormatParse {
                     case "UInt32":
                         if (fieldValue != null) {
                             try {
-                                long v = ((Number) fieldValue).longValue();
-                                statement.setLong(i + 1, v);
+                                int v = ((Number) fieldValue).intValue();
+                                statement.setInt(i + 1, v);
 
                             } catch (Exception exp) {
                                 String msg = String.format("Cannot Convert %s %s to long, render default", fieldValue.getClass(), fieldValue);
@@ -188,12 +185,26 @@ public class Native implements FormatParse {
 
                         break;
                     case "String":
-                    case "DateTime":
-                    case "Date":
                         if (fieldValue != null) {
                             statement.setString(i + 1, fieldValue.toString());
                         } else {
                             statement.setString(i + 1, "");
+                        }
+                        break;
+                    case "DateTime":
+                        if (fieldValue != null) {
+                            Date date = this.datetimeFormat.parse(fieldValue.toString());
+                            statement.setTimestamp(i + 1, new java.sql.Timestamp(date.getTime()));
+                        } else {
+                            statement.setTimestamp(i + 1, new java.sql.Timestamp(System.currentTimeMillis()));
+                        }
+                        break;
+                    case "Date":
+                        if (fieldValue != null) {
+                            Date date = this.dateFormat.parse(fieldValue.toString());
+                            statement.setDate(i + 1, new java.sql.Date(date.getTime()));
+                        } else {
+                            statement.setDate(i + 1, new java.sql.Date(System.currentTimeMillis()));
                         }
                         break;
                     case "Float32":
