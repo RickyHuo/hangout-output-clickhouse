@@ -2,7 +2,7 @@
 
 * Author: rickyHuo
 * Homepage: https://github.com/RickyHuo/hangout-output-clickhouse
-* Version: 0.0.6
+* Version: 0.0.7
 
 ### Description
 
