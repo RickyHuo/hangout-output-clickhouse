@@ -4,7 +4,7 @@
 
     <groupId>sina</groupId>
     <artifactId>hangout-output-plugins-clickhouse</artifactId>
-    <version>0.0.6</version>
+    <version>0.0.7</version>
     <packaging>jar</packaging>
 
     <name>hangout-output-plugins-clickhouse</name>
@@ -23,9 +23,14 @@
           <systemPath>C:\Users\huochen\.m2\repository\ctrip\hangout-baseplugin\0.3.0\hangout-baseplugin-0.3.0.jar</systemPath>
         </dependency>
         <dependency>
+            <groupId>com.github.housepower</groupId>
+            <artifactId>clickhouse-native-jdbc</artifactId>
+            <version>1.1-testing</version>
+        </dependency>
+        <dependency>
             <groupId>ru.yandex.clickhouse</groupId>
             <artifactId>clickhouse-jdbc</artifactId>
-            <version>0.1.36</version>
+            <version>0.1.40</version>
         </dependency>
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>

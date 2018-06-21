@@ -1,22 +1,19 @@
 package com.sina.bip.hangout.outputs;
 
 import com.ctrip.ops.sysdev.render.TemplateRender;
+import com.github.housepower.jdbc.ClickHouseConnection;
+import com.github.housepower.jdbc.settings.ClickHouseConfig;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import ru.yandex.clickhouse.BalancedClickhouseDataSource;
-import ru.yandex.clickhouse.ClickHouseConnectionImpl;
-import ru.yandex.clickhouse.settings.ClickHouseProperties;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
-public class TabSeparated implements FormatParse {
+public class Native implements FormatParse {
 
-    private static final Logger log = LogManager.getLogger(TabSeparated.class);
+    private static final Logger log = LogManager.getLogger(Native.class);
     private Map config;
     private String host;
     private String database;
@@ -27,28 +24,17 @@ public class TabSeparated implements FormatParse {
     private Boolean withCredit;
     private String user;
     private String password;
-    private Double fraction;
-    private BalancedClickhouseDataSource dataSource;
-    private ClickHouseConnectionImpl conn;
+    private ClickHouseConnection conn;
     private Map<String, TemplateRender> templateRenderMap;
+    private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+    private SimpleDateFormat datetimeFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
-    public TabSeparated(Map config) {
+    public Native(Map config) {
         this.config = config;
     }
 
     public void prepare() {
         this.templateRenderMap = new HashMap<>();
-
-        if (this.config.containsKey("fraction")) {
-            this.fraction = (Double) this.config.get("fraction");
-        } else {
-            this.fraction = 1.0;
-        }
-
-        if (this.fraction <= 0 || this.fraction > 1) {
-            log.error("invalid fraction");
-            System.exit(1);
-        }
 
         if (!this.config.containsKey("host")) {
             log.error("hostname must be included in config");
@@ -79,30 +65,28 @@ public class TabSeparated implements FormatParse {
             this.withCredit = false;
         }
 
-
         // 连接验证
-        this.jdbcLink = String.format("jdbc:clickhouse://%s/%s", this.host, this.database);
+        this.jdbcLink = String.format("jdbc:clickhouse://%s", this.host);
+        log.info(this.jdbcLink);
 
-        ClickHouseProperties properties = new ClickHouseProperties();
-        // 避免每次INSERT操作取服务器时间
-        properties.setUseServerTimeZone(false);
-        this.dataSource = new BalancedClickhouseDataSource(this.jdbcLink, properties);
+        Properties p = new Properties();
         if (this.withCredit) {
-            ClickHouseProperties withCredentials = properties.withCredentials(this.user, this.password);
-            this.dataSource = new BalancedClickhouseDataSource(this.jdbcLink, withCredentials);
+            p.put("user", this.user);
+            p.put("password", this.password);
         }
 
         try {
-            this.conn = (ClickHouseConnectionImpl) dataSource.getConnection();
-        } catch (Exception e) {
-            log.error("Cannot connection to datasource");
+            ClickHouseConfig cf = new ClickHouseConfig(this.jdbcLink, p);
+            this.conn = ClickHouseConnection.createClickHouseConnection(cf);
+        } catch (SQLException e) {
             log.error(e);
             System.exit(1);
         }
 
         try {
-            this.schema = ClickhouseUtils.getSchema(this.conn, this.table);
+            this.schema = ClickhouseUtils.getSchema(this.conn, this.database, this.table);
         } catch (SQLException e) {
+            log.error(e);
             log.error("input table is not valid");
             System.exit(1);
         }
@@ -148,7 +132,7 @@ public class TabSeparated implements FormatParse {
 
     public void bulkInsert(List<Map> events) throws Exception {
 
-        PreparedStatement statement = this.conn.createPreparedStatement(this.initSql());
+        PreparedStatement statement = this.conn.prepareStatement(this.initSql());
 
         int size = fields.size();
         for (Map e: events) {
@@ -186,8 +170,8 @@ public class TabSeparated implements FormatParse {
                     case "UInt32":
                         if (fieldValue != null) {
                             try {
-                                long v = ((Number) fieldValue).longValue();
-                                statement.setLong(i + 1, v);
+                                int v = ((Number) fieldValue).intValue();
+                                statement.setInt(i + 1, v);
 
                             } catch (Exception exp) {
                                 String msg = String.format("Cannot Convert %s %s to long, render default", fieldValue.getClass(), fieldValue);
@@ -201,12 +185,26 @@ public class TabSeparated implements FormatParse {
 
                         break;
                     case "String":
-                    case "DateTime":
-                    case "Date":
                         if (fieldValue != null) {
                             statement.setString(i + 1, fieldValue.toString());
                         } else {
                             statement.setString(i + 1, "");
+                        }
+                        break;
+                    case "DateTime":
+                        if (fieldValue != null) {
+                            Date date = this.datetimeFormat.parse(fieldValue.toString());
+                            statement.setTimestamp(i + 1, new java.sql.Timestamp(date.getTime()));
+                        } else {
+                            statement.setTimestamp(i + 1, new java.sql.Timestamp(System.currentTimeMillis()));
+                        }
+                        break;
+                    case "Date":
+                        if (fieldValue != null) {
+                            Date date = this.dateFormat.parse(fieldValue.toString());
+                            statement.setDate(i + 1, new java.sql.Date(date.getTime()));
+                        } else {
+                            statement.setDate(i + 1, new java.sql.Date(System.currentTimeMillis()));
                         }
                         break;
                     case "Float32":
