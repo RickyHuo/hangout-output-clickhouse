@@ -9,10 +9,8 @@ import ru.yandex.clickhouse.settings.ClickHouseProperties;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 public class TabSeparated implements FormatParse {
 
@@ -31,6 +29,8 @@ public class TabSeparated implements FormatParse {
     private BalancedClickhouseDataSource dataSource;
     private ClickHouseConnectionImpl conn;
     private Map<String, TemplateRender> templateRenderMap;
+    private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+    private SimpleDateFormat datetimeFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     public TabSeparated(Map config) {
         this.config = config;
@@ -201,12 +201,35 @@ public class TabSeparated implements FormatParse {
 
                         break;
                     case "String":
-                    case "DateTime":
-                    case "Date":
                         if (fieldValue != null) {
                             statement.setString(i + 1, fieldValue.toString());
                         } else {
                             statement.setString(i + 1, "");
+                        }
+
+                        break;
+                    case "DateTime":
+                        if (fieldValue != null) {
+                            try {
+                                this.datetimeFormat.parse(fieldValue.toString());
+                            } catch (Exception exp) {
+                                statement.setString(i + 1, this.datetimeFormat.format(System.currentTimeMillis()));
+                            }
+                            statement.setString(i + 1, fieldValue.toString());
+                        } else {
+                            statement.setString(i + 1, this.datetimeFormat.format(System.currentTimeMillis()));
+                        }
+                        break;
+                    case "Date":
+                        if (fieldValue != null) {
+                            try {
+                                this.dateFormat.parse(fieldValue.toString());
+                            } catch (Exception exp) {
+                                statement.setString(i + 1, this.dateFormat.format(System.currentTimeMillis()));
+                            }
+                            statement.setString(i + 1, fieldValue.toString());
+                        } else {
+                            statement.setString(i + 1, this.dateFormat.format(System.currentTimeMillis()));
                         }
                         break;
                     case "Float32":
