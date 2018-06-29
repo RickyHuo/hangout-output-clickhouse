@@ -212,10 +212,11 @@ public class TabSeparated implements FormatParse {
                         if (fieldValue != null) {
                             try {
                                 this.datetimeFormat.parse(fieldValue.toString());
+                                statement.setString(i + 1, fieldValue.toString());
                             } catch (Exception exp) {
+                                log.warn(exp);
                                 statement.setString(i + 1, this.datetimeFormat.format(System.currentTimeMillis()));
                             }
-                            statement.setString(i + 1, fieldValue.toString());
                         } else {
                             statement.setString(i + 1, this.datetimeFormat.format(System.currentTimeMillis()));
                         }
@@ -224,10 +225,11 @@ public class TabSeparated implements FormatParse {
                         if (fieldValue != null) {
                             try {
                                 this.dateFormat.parse(fieldValue.toString());
+                                statement.setString(i + 1, fieldValue.toString());
                             } catch (Exception exp) {
+                                log.warn(exp);
                                 statement.setString(i + 1, this.dateFormat.format(System.currentTimeMillis()));
                             }
-                            statement.setString(i + 1, fieldValue.toString());
                         } else {
                             statement.setString(i + 1, this.dateFormat.format(System.currentTimeMillis()));
                         }
