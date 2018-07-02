@@ -29,7 +29,9 @@ public class Clickhouse extends BaseOutput {
     protected void prepare() {
 
         String format = "TabSeparated";
-        format = (String) this.config.get("format");
+        if (this.config.containsKey("format")) {
+            format = (String) this.config.get("format");
+        }
 
         switch (format) {
             case "JSONEachRow":
