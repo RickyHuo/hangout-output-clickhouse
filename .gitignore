@@ -96,6 +96,7 @@ hs_err_pid*
 # IDEA
 *.idea
 *.iml
+.DS_Store
 
 # build targets
 target/

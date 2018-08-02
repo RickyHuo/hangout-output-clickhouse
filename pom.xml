@@ -20,7 +20,7 @@
             <artifactId>hangout-baseplugin</artifactId>
             <version>0.3.0</version>
             <scope>system</scope>
-          <systemPath>C:\Users\huochen\.m2\repository\ctrip\hangout-baseplugin\0.3.0\hangout-baseplugin-0.3.0.jar</systemPath>
+          <systemPath>/Users/rickyhuo/Documents/hangout-baseplugin-0.3.0.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>com.github.housepower</groupId>
