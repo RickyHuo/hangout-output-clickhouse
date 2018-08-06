@@ -210,13 +210,7 @@ public class TabSeparated implements FormatParse {
                         break;
                     case "DateTime":
                         if (fieldValue != null) {
-                            try {
-                                this.datetimeFormat.parse(fieldValue.toString());
-                                statement.setString(i + 1, fieldValue.toString());
-                            } catch (Exception exp) {
-                                log.warn(exp);
-                                statement.setString(i + 1, this.datetimeFormat.format(System.currentTimeMillis()));
-                            }
+                            statement.setString(i + 1, fieldValue.toString());
                         } else {
                             statement.setString(i + 1, this.datetimeFormat.format(System.currentTimeMillis()));
                         }

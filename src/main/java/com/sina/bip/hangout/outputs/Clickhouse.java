@@ -47,7 +47,8 @@ public class Clickhouse extends BaseOutput {
                 this.formatParse = new Native(config);
                 break;
             default:
-                log.error("Unknown format <%s>", format);
+                String msg = String.format("Unknown format <%s>", format);
+                log.error(msg);
                 System.exit(1);
                 break;
         }
