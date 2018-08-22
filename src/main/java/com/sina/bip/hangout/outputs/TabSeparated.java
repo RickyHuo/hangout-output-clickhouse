@@ -152,8 +152,6 @@ public class TabSeparated implements FormatParse {
 
         int size = fields.size();
         for (Map e: events) {
-            //statement.setString(1, "sd");
-
             for (int i=0; i<size; i++) {
                 String field = fields.get(i);
                 String fieldType = this.schema.get(ClickhouseUtils.realField(field));
@@ -178,9 +176,7 @@ public class TabSeparated implements FormatParse {
                         } else {
                             statement.setInt(i + 1, 0);
                         }
-
                         break;
-
                     case "UInt64":
                     case "Int64":
                     case "UInt32":
@@ -198,7 +194,6 @@ public class TabSeparated implements FormatParse {
                         } else {
                             statement.setInt(i + 1, 0);
                         }
-
                         break;
                     case "String":
                         if (fieldValue != null) {
@@ -206,7 +201,6 @@ public class TabSeparated implements FormatParse {
                         } else {
                             statement.setString(i + 1, "");
                         }
-
                         break;
                     case "DateTime":
                         if (fieldValue != null) {
@@ -253,12 +247,10 @@ public class TabSeparated implements FormatParse {
                         } else {
                             statement.setArray(i + 1, this.conn.createArrayOf("string", new String[1]));
                         }
-
                 }
             }
             statement.addBatch();
         }
         statement.executeBatch();
     }
-
 }

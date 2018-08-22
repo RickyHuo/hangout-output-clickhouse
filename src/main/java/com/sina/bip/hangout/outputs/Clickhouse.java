@@ -91,16 +91,19 @@ public class Clickhouse extends BaseOutput {
             eventInsert(event);
         } catch (Exception e) {
             log.error(e);
-            log.warn("insert error");
+            log.warn("Insert failed");
         }
     }
 
     public void shutdown() {
+        log.info("Start to write events to ClickHouse before shutdown");
         try {
+            Thread.sleep(500);
             this.formatParse.bulkInsert(this.events);
+            log.info("Succeeded to write events into ClickHouse before shutdown");
         } catch (Exception e) {
-            log.info("failed to bulk events before shutdown");
             log.error(e);
+            log.info("Failed to write events into ClickHouse before shutdown");
         }
     }
 }
