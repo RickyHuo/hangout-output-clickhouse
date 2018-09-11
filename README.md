@@ -99,3 +99,11 @@ outputs:
 
     - `yyyy-MM-dd HH:mm:ss`
     - `UNIX` 例如：1533535518
+    
+### Supported data types
+
+* UInt8, UInt16, UInt32, UInt64, Int8, Int16, Int32, Int64
+* Float32, Float64
+* Date
+* DateTime
+* Array(String)
