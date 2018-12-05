@@ -12,7 +12,7 @@ import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-public class TabSeparated implements FormatParse {
+public class TabSeparated<T extends List<Map>> implements FormatParse<T> {
 
     private static final Logger log = LogManager.getLogger(TabSeparated.class);
     private Map config;
@@ -146,7 +146,7 @@ public class TabSeparated implements FormatParse {
         return init;
     }
 
-    public void bulkInsert(List<Map> events) throws Exception {
+    public void bulkInsert(T events) throws Exception {
 
         PreparedStatement statement = this.conn.createPreparedStatement(this.initSql());
 

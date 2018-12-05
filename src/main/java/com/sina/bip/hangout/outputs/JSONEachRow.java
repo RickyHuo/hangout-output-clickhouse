@@ -9,10 +9,11 @@ import ru.yandex.clickhouse.ClickHouseConnectionImpl;
 import ru.yandex.clickhouse.settings.ClickHouseProperties;
 
 import java.sql.SQLException;
+import java.util.AbstractList;
 import java.util.List;
 import java.util.Map;
 
-public class JSONEachRow implements FormatParse {
+public class JSONEachRow<T extends AbstractList<Map>> implements FormatParse<T> {
 
     private static final Logger log = LogManager.getLogger(JSONEachRow.class);
     private Map config;
@@ -103,7 +104,7 @@ public class JSONEachRow implements FormatParse {
         return init;
     }
 
-    public void bulkInsert(List<Map> events) throws Exception {
+    public void bulkInsert(T events) throws Exception {
 
         StringBuilder wholeSql = makeUpSql(events);
         try {

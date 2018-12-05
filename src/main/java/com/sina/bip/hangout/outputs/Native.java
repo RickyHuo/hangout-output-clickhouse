@@ -11,7 +11,7 @@ import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-public class Native implements FormatParse {
+public class Native<T extends List<Map>> implements FormatParse<T> {
 
     private static final Logger log = LogManager.getLogger(Native.class);
     private Map config;
@@ -130,7 +130,7 @@ public class Native implements FormatParse {
         return init;
     }
 
-    public void bulkInsert(List<Map> events) throws Exception {
+    public void bulkInsert(T events) throws Exception {
 
         PreparedStatement statement = this.conn.prepareStatement(this.initSql());
 
