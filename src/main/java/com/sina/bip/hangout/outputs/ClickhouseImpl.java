@@ -50,6 +50,25 @@ public class ClickhouseImpl<T extends List<Map>> {
                 break;
         }
 
+        if (this.config.containsKey("flush_interval")) {
+            TimerTask task = new TimerTask() {
+                @Override
+                public void run() {
+                    try {
+                        formatParse.bulkInsert(listEvents);
+                        log.info("Force to write to ClickHouse");
+                        listEvents.clear();
+                    } catch (Exception e) {
+                        log.info("Failed to force to write to ClickHouse");
+                        log.error(e);
+                    }
+                }
+            };
+            Timer timer = new Timer();
+            long intervalPeriod = (int) this.config.get("flush_interval") * 1000;
+            timer.scheduleAtFixedRate(task, 10000, intervalPeriod);
+        }
+
         this.formatParse.prepare();
         if (this.config.containsKey("bulk_size")) {
             this.bulkSize = (Integer) this.config.get("bulk_size");

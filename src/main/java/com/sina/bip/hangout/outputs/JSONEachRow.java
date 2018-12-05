@@ -9,11 +9,10 @@ import ru.yandex.clickhouse.ClickHouseConnectionImpl;
 import ru.yandex.clickhouse.settings.ClickHouseProperties;
 
 import java.sql.SQLException;
-import java.util.AbstractList;
 import java.util.List;
 import java.util.Map;
 
-public class JSONEachRow<T extends AbstractList<Map>> implements FormatParse<T> {
+public class JSONEachRow<T extends List<Map>> implements FormatParse<T> {
 
     private static final Logger log = LogManager.getLogger(JSONEachRow.class);
     private Map config;
