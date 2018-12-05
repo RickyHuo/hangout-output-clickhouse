@@ -12,7 +12,7 @@ import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-public class TabSeparated implements FormatParse {
+public class TabSeparated<T extends List<Map>> implements FormatParse<T> {
 
     private static final Logger log = LogManager.getLogger(TabSeparated.class);
     private Map config;
@@ -51,19 +51,19 @@ public class TabSeparated implements FormatParse {
         }
 
         if (!this.config.containsKey("host")) {
-            log.error("hostname must be included in config");
+            log.error("The parameter of <hostname> must be included in config");
             System.exit(1);
         }
         this.host = (String) this.config.get("host");
 
         if (!this.config.containsKey("database")) {
-            log.error("database must be included in config");
+            log.error("The parameter of <database> must be included in config");
             System.exit(1);
         }
         this.database = (String) this.config.get("database");
 
         if (!this.config.containsKey("table")) {
-            log.error("table must be included in config");
+            log.error("The parameter of <table> must be included in config");
             System.exit(1);
         }
         this.table = (String) this.config.get("table");
@@ -74,7 +74,7 @@ public class TabSeparated implements FormatParse {
             this.withCredit = true;
 
         } else if (this.config.containsKey("username") || this.config.containsKey("password")) {
-            log.warn("username and password must be included in config at same time");
+            log.warn("The parameter of <username> and <password> must be included in config at same time");
         } else {
             this.withCredit = false;
         }
@@ -95,7 +95,7 @@ public class TabSeparated implements FormatParse {
         try {
             this.conn = (ClickHouseConnectionImpl) dataSource.getConnection();
         } catch (Exception e) {
-            log.error("Cannot connection to datasource");
+            log.error("Cannot connection to specified ClickHouse database");
             log.error(e);
             System.exit(1);
         }
@@ -103,7 +103,7 @@ public class TabSeparated implements FormatParse {
         try {
             this.schema = ClickhouseUtils.getSchema(this.conn, this.table);
         } catch (SQLException e) {
-            log.error("input table is not valid");
+            log.error("The input table is not valid");
             System.exit(1);
         }
 
@@ -111,20 +111,20 @@ public class TabSeparated implements FormatParse {
         if (this.config.containsKey("fields")) {
             this.fields = (List<String>) this.config.get("fields");
         } else {
-            log.error("fields must be included in config");
+            log.error("The parameter of <fields> must be included in config");
             System.exit(1);
         }
 
         for (String field: fields) {
             if (!this.schema.containsKey(ClickhouseUtils.realField(field))) {
-                String msg = String.format("table [%s] doesn't contain field '%s'", this.table, field);
+                String msg = String.format("ClickHouse table [%s] doesn't contain field '%s'", this.table, field);
                 log.error(msg);
                 System.exit(1);
             }
             try {
                 this.templateRenderMap.put(field, TemplateRender.getRender(field, false));
             } catch (Exception e) {
-                String msg = String.format("cannot get templateRender of field [%s]", field);
+                String msg = String.format("Cannot get templateRender of field [%s]", field);
                 log.warn(msg);
             }
         }
@@ -146,7 +146,7 @@ public class TabSeparated implements FormatParse {
         return init;
     }
 
-    public void bulkInsert(List<Map> events) throws Exception {
+    public void bulkInsert(T events) throws Exception {
 
         PreparedStatement statement = this.conn.createPreparedStatement(this.initSql());
 
