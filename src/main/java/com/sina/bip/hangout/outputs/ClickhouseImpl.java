@@ -51,12 +51,14 @@ public class ClickhouseImpl<T extends List<Map>> {
         }
 
         if (this.config.containsKey("flush_interval")) {
+            log.info("Start to register an timerTask");
             TimerTask task = new TimerTask() {
                 @Override
                 public void run() {
                     try {
+                        log.info("Force to write to ClickHouse start.");
                         formatParse.bulkInsert(listEvents);
-                        log.info("Force to write to ClickHouse");
+                        log.info("Force to write to ClickHouse finish.");
                         listEvents.clear();
                     } catch (Exception e) {
                         log.info("Failed to force to write to ClickHouse");
