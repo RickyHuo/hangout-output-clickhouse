@@ -46,19 +46,19 @@ public class JSONEachRow<T extends AbstractList<Map>> implements FormatParse<T> 
         }
 
         if (!this.config.containsKey("host")) {
-            log.error("hostname must be included in config");
+            log.error("The parameter of <hostname> must be included in config");
             System.exit(1);
         }
         this.host = (String) this.config.get("host");
 
         if (!this.config.containsKey("database")) {
-            log.error("database must be included in config");
+            log.error("The parameter of <database> must be included in config");
             System.exit(1);
         }
         this.database = (String) this.config.get("database");
 
         if (!this.config.containsKey("table")) {
-            log.error("table must be included in config");
+            log.error("The parameter of <table> must be included in config");
             System.exit(1);
         }
         this.table = (String) this.config.get("table");
@@ -69,7 +69,7 @@ public class JSONEachRow<T extends AbstractList<Map>> implements FormatParse<T> 
             this.withCredit = true;
 
         } else if (this.config.containsKey("username") || this.config.containsKey("password")) {
-            log.warn("username and password must be included in config at same time");
+            log.warn("The parameter of <username> and <password> must be included in config at same time");
         } else {
             this.withCredit = false;
         }
@@ -90,7 +90,7 @@ public class JSONEachRow<T extends AbstractList<Map>> implements FormatParse<T> 
         try {
             this.conn = (ClickHouseConnectionImpl) dataSource.getConnection();
         } catch (Exception e) {
-            log.error("Cannot connection to datasource");
+            log.error("Cannot connection to ClickHouse database");
             log.error(e);
             System.exit(1);
         }
