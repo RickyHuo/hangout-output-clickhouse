@@ -17,7 +17,7 @@
 | [bulk_size](#bulk_size-number) | int | no | 1000 |
 | [database](#database-string) | string | yes | - |
 | [fields](#fields-list) | list | yes | - |
-| [flush_interval](#flush_interval-) | int | no | |
+| [flush_interval](#flush_interval-number) | int | no | |
 | [format](#format-string) | string | no | TabSeparated |
 | [host](#host-string) | string | yes | - |
 | [table](#table-string) | string | yes | - |
