@@ -2,60 +2,71 @@
 
 * Author: rickyHuo
 * Homepage: https://github.com/RickyHuo/hangout-output-clickhouse
-* Version: 0.0.7
+* Version: 0.0.8
 
 ### Description
 
-使用Hangout将数据清洗写入ClickHouse
+使用Hangout将数据清洗写入ClickHouse，**兼容hangout-dist-0.3.0-release**， 0.4.0版本hangout兼容性未知。
+
+如果线上有现成的Spark环境，可以使用[Waterdrop](https://github.com/InterestingLab/waterdrop)接入数据，支持Kafka、HDFS、Hive等。
 
 ### Options
 
 | name | type | required | default value |
 | --- | --- | --- | --- |
-| [bulk_size](#bulk_size-list) | int | no | 1000 |
+| [bulk_size](#bulk_size-number) | int | no | 1000 |
 | [database](#database-string) | string | yes | - |
 | [fields](#fields-list) | list | yes | - |
+| [flush_interval](#flush_interval-) | int | no | |
 | [format](#format-string) | string | no | TabSeparated |
 | [host](#host-string) | string | yes | - |
 | [table](#table-string) | string | yes | - |
-| [username](#username-string) | string | yes | - |
 | [password](#password-string) | string | yes | - |
+| [username](#username-string) | string | yes | - |
 
-##### bulk_size [string]
+##### bulk_size [number]
 
-批次写入量，默认为1000, **当且仅当input数据条数大于bulk_size才会触发写入操作**
+批次写入量，默认为1000。
 
 ##### database [string]
 
-database
+ClickHouse database.
 
 ##### fields [list]
 
-table fields， 必须和Hangout清洗后的字段保持一致
+期望写入ClickHouse的数据字段。
+
+##### flush_interval [number]
+
+定时写入周期，单位为秒。
+
+当flush_interval存在时，批数据条数满足bulk_size或者过了flush_interval秒，会触发写入ClickHouse的操作。
+
+否则，仅当数据条数达到bulk_size时，才会触发写入操作。
 
 ##### format [string]
 
 数据插入格式[ClickHouse Format Introduction](https://clickhouse.yandex/docs/en/formats/)
 
-当前支持`Values`（已弃用）、`JSONEachRow`以及`TabSeparated`
+当前支持`JSONEachRow`以及`TabSeparated`。
 
 [JDBC Format Performance TEST](./docs/jdbc_format_performance.md)
 
 ##### host [string]
 
-ClickHouse cluster host
+ClickHouse集群地址，多个以逗号","隔开。
 
 ##### table [string]
 
-table
+ClickHouse table name.
 
 ##### username [string]
 
-ClickHouse withCredit username
+ClickHouse withCredit username.
 
 ##### password [string]
 
-ClickHouse withCredit password
+ClickHouse withCredit password.
 
 ### Examples
 
@@ -71,7 +82,7 @@ outputs:
         bulk_size: 500
 ```
 
-> 使用`Tabseparated`(default)将fields中对应的字段写入ClickHouse
+> 使用`Tabseparated`(default)将fields中对应的字段写入ClickHouse。
 
 ```
 outputs:
@@ -83,8 +94,11 @@ outputs:
         format: JSONEachRow
         table: apm_netdiagno
         bulk_size: 500
+        flush_interval: 10
 ```
 > 使用`JSONEachRow`将数据写入ClickHouse，使用时务必保证清洗后的数据没有多余的字段且与表结构对应。使用`JSONEachRow`则不需要配置`fields`参数。
+
+> 每10秒或者每500条数据写入一次。
 
 
 ### Tips
