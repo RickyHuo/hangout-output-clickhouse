@@ -1,6 +1,7 @@
 package com.sina.bip.hangout.outputs;
 
 import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import com.ctrip.ops.sysdev.baseplugin.BaseOutput;
 import org.apache.logging.log4j.LogManager;
@@ -27,8 +28,8 @@ public class Clickhouse extends BaseOutput {
             ArrayList events = new ArrayList<Map>();
             impl = new ClickhouseImpl<ArrayList<Map>>(this.config, events);
         } else {
-            Vector events = new Vector<Map>();
-            impl = new ClickhouseImpl<Vector<Map>>(this.config, events);
+            CopyOnWriteArrayList events = new CopyOnWriteArrayList<Map>();
+            impl = new ClickhouseImpl<CopyOnWriteArrayList<Map>>(this.config, events);
         }
 
         impl.prepare();
