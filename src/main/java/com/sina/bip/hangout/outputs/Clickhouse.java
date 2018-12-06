@@ -23,7 +23,7 @@ public class Clickhouse extends BaseOutput {
 
     protected void prepare() {
 
-        if (this.config.containsKey("flush_interval")) {
+        if (!this.config.containsKey("flush_interval")) {
             ArrayList events = new ArrayList<Map>();
             impl = new ClickhouseImpl<ArrayList<Map>>(this.config, events);
         } else {
