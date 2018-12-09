@@ -6,56 +6,61 @@
 
 ### Description
 
-使用Hangout将数据清洗写入ClickHouse
+使用Hangout将数据清洗写入ClickHouse，**兼容hangout-dist-0.3.0-release**， 0.4.0版本hangout兼容性未知。
+
+如果线上有现成的Spark环境，可以使用[Waterdrop](https://github.com/InterestingLab/waterdrop)接入数据，支持Kafka、HDFS、Hive等。
 
 ### Options
 
 | name | type | required | default value |
 | --- | --- | --- | --- |
-| [bulk_size](#bulk_size-list) | int | no | 1000 |
+| [bulk_size](#bulk_size-number) | int | no | 1000 |
 | [database](#database-string) | string | yes | - |
 | [fields](#fields-list) | list | yes | - |
 | [format](#format-string) | string | no | TabSeparated |
 | [host](#host-string) | string | yes | - |
 | [table](#table-string) | string | yes | - |
-| [username](#username-string) | string | yes | - |
 | [password](#password-string) | string | yes | - |
+| [username](#username-string) | string | yes | - |
 
-##### bulk_size [string]
+##### bulk_size [number]
 
-批次写入量，默认为1000, **当且仅当input数据条数大于bulk_size才会触发写入操作**
+批次写入量，默认为1000，**当且仅当数据条数达到bulk_size时，才会触发写入操作。**
+
+dev版本正在开发时间触发器，敬请期待...
 
 ##### database [string]
 
-database
+ClickHouse database.
 
 ##### fields [list]
 
-table fields， 必须和Hangout清洗后的字段保持一致
+期望写入ClickHouse的数据字段。
+
 
 ##### format [string]
 
 数据插入格式[ClickHouse Format Introduction](https://clickhouse.yandex/docs/en/formats/)
 
-当前支持`Values`（已弃用）、`JSONEachRow`以及`TabSeparated`
+当前支持`JSONEachRow`以及`TabSeparated`。
 
 [JDBC Format Performance TEST](./docs/jdbc_format_performance.md)
 
 ##### host [string]
 
-ClickHouse cluster host
+ClickHouse集群地址，多个以逗号","隔开。
 
 ##### table [string]
 
-table
+ClickHouse table name.
 
 ##### username [string]
 
-ClickHouse withCredit username
+ClickHouse withCredit username.
 
 ##### password [string]
 
-ClickHouse withCredit password
+ClickHouse withCredit password.
 
 ### Examples
 
@@ -71,7 +76,7 @@ outputs:
         bulk_size: 500
 ```
 
-> 使用`Tabseparated`(default)将fields中对应的字段写入ClickHouse
+> 使用`Tabseparated`(default)将fields中对应的字段写入ClickHouse。
 
 ```
 outputs:
