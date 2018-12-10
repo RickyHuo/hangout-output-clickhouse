@@ -130,7 +130,7 @@ public class Native<T extends List<Map>> implements FormatParse<T> {
         return init;
     }
 
-    public void bulkInsert(T events) throws Exception {
+    public synchronized void bulkInsert(T events) throws Exception {
 
         PreparedStatement statement = this.conn.prepareStatement(this.initSql());
 

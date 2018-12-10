@@ -103,7 +103,7 @@ public class JSONEachRow<T extends List<Map>> implements FormatParse<T> {
         return init;
     }
 
-    public void bulkInsert(T events) throws Exception {
+    public synchronized void bulkInsert(T events) throws Exception {
 
         StringBuilder wholeSql = makeUpSql(events);
         try {
