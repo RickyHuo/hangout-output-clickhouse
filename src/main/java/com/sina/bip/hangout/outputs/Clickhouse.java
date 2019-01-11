@@ -72,9 +72,8 @@ public class Clickhouse extends BaseOutput {
 
         // 重试3次
         if (this.events.size() >= eventSize + 3) {
-            this.events.clear();
-            log.error("Retry 3 times failed, drop this bulk, number: " + this.bulkNum);
-            this.bulkNum += 1;
+            log.error("Retry failed 3 times, system exit");
+            System.exit(1);
         }
         if (this.events.size() >= eventSize) {
 

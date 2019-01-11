@@ -204,7 +204,11 @@ public class TabSeparated implements FormatParse {
                         break;
                     case "DateTime":
                         if (fieldValue != null) {
-                            statement.setString(i + 1, fieldValue.toString());
+                            if (fieldValue.equals(0) || fieldValue.equals("0")) {
+                                statement.setString(i + 1, "0000-00-00 00:00:00");
+                            } else {
+                                statement.setString(i + 1, fieldValue.toString());
+                            }
                         } else {
                             statement.setString(i + 1, this.datetimeFormat.format(System.currentTimeMillis()));
                         }
