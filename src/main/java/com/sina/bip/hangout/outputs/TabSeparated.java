@@ -256,5 +256,6 @@ public class TabSeparated implements FormatParse {
             statement.addBatch();
         }
         statement.executeBatch();
+//        statement.close();
     }
 }
