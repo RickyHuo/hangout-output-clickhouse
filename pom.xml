@@ -20,7 +20,7 @@
             <artifactId>hangout-baseplugin</artifactId>
             <version>0.3.0</version>
             <scope>system</scope>
-          <systemPath>/Users/rickyhuo/Documents/hangout-baseplugin-0.3.0.jar</systemPath>
+          <systemPath>${project.basedir}/jars/hangout-baseplugin-0.3.0.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>com.github.housepower</groupId>
@@ -30,7 +30,7 @@
         <dependency>
             <groupId>ru.yandex.clickhouse</groupId>
             <artifactId>clickhouse-jdbc</artifactId>
-            <version>0.1.40</version>
+            <version>0.1.44</version>
         </dependency>
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
