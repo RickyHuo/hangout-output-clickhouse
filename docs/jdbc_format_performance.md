@@ -43,7 +43,7 @@ insert into db.table (date, datetime, domian, uri, http_code) FORMAT TabSeparate
 
 ## 测试结果
 
-![](http://oupfz5jq2.bkt.clouddn.com/18-3-21/66751746.jpg)
+![](./images/perf.png)
 
 ## 总结
 
