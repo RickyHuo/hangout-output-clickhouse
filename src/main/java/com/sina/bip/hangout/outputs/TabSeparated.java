@@ -72,7 +72,7 @@ public class TabSeparated implements FormatParse {
         }
         this.table = (String) this.config.get("table");
 
-        if(this.config.containsKey("username") && this.config.containsKey("password")) {
+        if (this.config.containsKey("username") && this.config.containsKey("password")) {
             this.user = (String) this.config.get("username");
             this.password = (String) this.config.get("password");
             this.withCredit = true;
@@ -119,7 +119,7 @@ public class TabSeparated implements FormatParse {
             System.exit(1);
         }
 
-        for (String field: fields) {
+        for (String field : fields) {
             if (!this.schema.containsKey(ClickhouseUtils.realField(field))) {
                 String msg = String.format("table [%s] doesn't contain field '%s'", this.table, field);
                 log.error(msg);
@@ -137,7 +137,7 @@ public class TabSeparated implements FormatParse {
     private String initSql() {
 
         List<String> realFields = new ArrayList<>();
-        for(String field: this.fields) {
+        for (String field : this.fields) {
             realFields.add(ClickhouseUtils.realField(field));
         }
 
@@ -239,7 +239,7 @@ public class TabSeparated implements FormatParse {
             case "Array(String)":
                 if (fieldValue != null) {
                     List<String> v = (List) fieldValue;
-                    String [] array = v.toArray(new String[v.size()]);
+                    String[] array = v.toArray(new String[v.size()]);
                     statement.setArray(index, this.conn.createArrayOf("string", array));
                 } else {
                     statement.setArray(index, this.conn.createArrayOf("string", new String[1]));
@@ -260,12 +260,12 @@ public class TabSeparated implements FormatParse {
 
         PreparedStatement statement = this.conn.createPreparedStatement(this.initSql());
         int size = fields.size();
-        for (Map e: events) {
-            for (int i=0; i<size; i++) {
+        for (Map e : events) {
+            for (int i = 0; i < size; i++) {
                 String field = fields.get(i);
                 String fieldType = this.schema.get(ClickhouseUtils.realField(field));
                 Object fieldValue = this.templateRenderMap.get(field).render(e);
-                renderStatement(i+1, fieldType, fieldValue, statement);
+                renderStatement(i + 1, fieldType, fieldValue, statement);
             }
             statement.addBatch();
         }
