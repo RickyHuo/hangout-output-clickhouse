@@ -11,6 +11,8 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class TabSeparated implements FormatParse {
 
@@ -31,6 +33,8 @@ public class TabSeparated implements FormatParse {
     private Map<String, TemplateRender> templateRenderMap;
     private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
     private SimpleDateFormat datetimeFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    private Pattern lowCardinalityPattern = Pattern.compile("LowCardinality\\((.*)\\)");
+
 
     public TabSeparated(Map config) {
         this.config = config;
@@ -130,7 +134,7 @@ public class TabSeparated implements FormatParse {
         }
     }
 
-    public String initSql() {
+    private String initSql() {
 
         List<String> realFields = new ArrayList<>();
         for(String field: this.fields) {
@@ -146,112 +150,122 @@ public class TabSeparated implements FormatParse {
         return init;
     }
 
+    private void renderStatement(int index, String fieldType, Object fieldValue, PreparedStatement statement) throws Exception {
+        switch (fieldType) {
+            case "Int8":
+            case "Int16":
+            case "Int32":
+            case "UInt8":
+            case "UInt16":
+                if (fieldValue != null) {
+                    try {
+                        int v = ((Number) fieldValue).intValue();
+                        statement.setInt(index, v);
+
+                    } catch (Exception exp) {
+                        String msg = String.format("Cannot Convert %s %s to integer, render default. Field index is %s", fieldValue.getClass(), fieldValue, index);
+                        log.warn(msg);
+                        log.error(exp);
+                        statement.setInt(index, 0);
+                    }
+                } else {
+                    statement.setInt(index, 0);
+                }
+                break;
+            case "UInt64":
+            case "Int64":
+            case "UInt32":
+                if (fieldValue != null) {
+                    try {
+                        long v = ((Number) fieldValue).longValue();
+                        statement.setLong(index, v);
+
+                    } catch (Exception exp) {
+                        String msg = String.format("Cannot Convert %s %s to long, render default", fieldValue.getClass(), fieldValue);
+                        log.warn(msg);
+                        log.error(exp);
+                        statement.setInt(index, 0);
+                    }
+                } else {
+                    statement.setInt(index, 0);
+                }
+                break;
+            case "String":
+                if (fieldValue != null) {
+                    statement.setString(index, fieldValue.toString());
+                } else {
+                    statement.setString(index, "");
+                }
+                break;
+            case "DateTime":
+                if (fieldValue != null) {
+                    if (fieldValue.equals(0) || fieldValue.equals("0")) {
+                        statement.setString(index, "0000-00-00 00:00:00");
+                    } else {
+                        statement.setString(index, fieldValue.toString());
+                    }
+                } else {
+                    statement.setString(index, this.datetimeFormat.format(System.currentTimeMillis()));
+                }
+                break;
+            case "Date":
+                if (fieldValue != null) {
+                    try {
+                        this.dateFormat.parse(fieldValue.toString());
+                        statement.setString(index, fieldValue.toString());
+                    } catch (Exception exp) {
+                        log.warn(exp);
+                        statement.setString(index, this.dateFormat.format(System.currentTimeMillis()));
+                    }
+                } else {
+                    statement.setString(index, this.dateFormat.format(System.currentTimeMillis()));
+                }
+                break;
+            case "Float32":
+                if (fieldValue != null) {
+                    try {
+                        float v = ((Number) fieldValue).floatValue();
+                        statement.setFloat(index, v);
+                    } catch (Exception exp) {
+                        String msg = String.format("Cannot Convert %s %s to float, render default", fieldValue.getClass(), fieldValue);
+                        log.warn(msg);
+                        log.error(exp);
+                        statement.setFloat(index, 0f);
+                    }
+                } else {
+                    statement.setFloat(index, 0f);
+                }
+                break;
+            case "Array(String)":
+                if (fieldValue != null) {
+                    List<String> v = (List) fieldValue;
+                    String [] array = v.toArray(new String[v.size()]);
+                    statement.setArray(index, this.conn.createArrayOf("string", array));
+                } else {
+                    statement.setArray(index, this.conn.createArrayOf("string", new String[1]));
+                }
+                break;
+            default:
+                Matcher m = lowCardinalityPattern.matcher(fieldType);
+                if (m.find()) {
+//                    System.out.print(m.groupCount());
+                    renderStatement(index, m.group(1), fieldValue, statement);
+                } else {
+                    renderStatement(index, "String", fieldValue, statement);
+                }
+        }
+    }
+
     public void bulkInsert(List<Map> events) throws Exception {
 
         PreparedStatement statement = this.conn.createPreparedStatement(this.initSql());
-
         int size = fields.size();
         for (Map e: events) {
             for (int i=0; i<size; i++) {
                 String field = fields.get(i);
                 String fieldType = this.schema.get(ClickhouseUtils.realField(field));
                 Object fieldValue = this.templateRenderMap.get(field).render(e);
-                switch (fieldType) {
-                    case "Int8":
-                    case "Int16":
-                    case "Int32":
-                    case "UInt8":
-                    case "UInt16":
-                        if (fieldValue != null) {
-                            try {
-                                int v = ((Number) fieldValue).intValue();
-                                statement.setInt(i + 1, v);
-
-                            } catch (Exception exp) {
-                                String msg = String.format("Cannot Convert %s %s to integer, render default. Field is %s", fieldValue.getClass(), fieldValue, field);
-                                log.warn(msg);
-                                log.error(exp);
-                                statement.setInt(i + 1, 0);
-                            }
-                        } else {
-                            statement.setInt(i + 1, 0);
-                        }
-                        break;
-                    case "UInt64":
-                    case "Int64":
-                    case "UInt32":
-                        if (fieldValue != null) {
-                            try {
-                                long v = ((Number) fieldValue).longValue();
-                                statement.setLong(i + 1, v);
-
-                            } catch (Exception exp) {
-                                String msg = String.format("Cannot Convert %s %s to long, render default", fieldValue.getClass(), fieldValue);
-                                log.warn(msg);
-                                log.error(exp);
-                                statement.setInt(i + 1, 0);
-                            }
-                        } else {
-                            statement.setInt(i + 1, 0);
-                        }
-                        break;
-                    case "String":
-                        if (fieldValue != null) {
-                            statement.setString(i + 1, fieldValue.toString());
-                        } else {
-                            statement.setString(i + 1, "");
-                        }
-                        break;
-                    case "DateTime":
-                        if (fieldValue != null) {
-                            if (fieldValue.equals(0) || fieldValue.equals("0")) {
-                                statement.setString(i + 1, "0000-00-00 00:00:00");
-                            } else {
-                                statement.setString(i + 1, fieldValue.toString());
-                            }
-                        } else {
-                            statement.setString(i + 1, this.datetimeFormat.format(System.currentTimeMillis()));
-                        }
-                        break;
-                    case "Date":
-                        if (fieldValue != null) {
-                            try {
-                                this.dateFormat.parse(fieldValue.toString());
-                                statement.setString(i + 1, fieldValue.toString());
-                            } catch (Exception exp) {
-                                log.warn(exp);
-                                statement.setString(i + 1, this.dateFormat.format(System.currentTimeMillis()));
-                            }
-                        } else {
-                            statement.setString(i + 1, this.dateFormat.format(System.currentTimeMillis()));
-                        }
-                        break;
-                    case "Float32":
-                    case "Float64":
-                        if (fieldValue != null) {
-                            try {
-                                float v = ((Number) fieldValue).floatValue();
-                                statement.setFloat(i + 1, v);
-                            } catch (Exception exp) {
-                                String msg = String.format("Cannot Convert %s %s to float, render default", fieldValue.getClass(), fieldValue);
-                                log.warn(msg);
-                                log.error(exp);
-                                statement.setFloat(i + 1, 0f);
-                            }
-                        } else {
-                            statement.setFloat(i + 1, 0f);
-                        }
-
-                        break;
-                    case "Array(String)":
-                        if (fieldValue != null) {
-                            List<String> v = (List) fieldValue;
-                            String [] array = v.toArray(new String[v.size()]);
-                            statement.setArray(i + 1, this.conn.createArrayOf("string", array));
-                        } else {
-                            statement.setArray(i + 1, this.conn.createArrayOf("string", new String[1]));
-                        }
-                }
+                renderStatement(i+1, fieldType, fieldValue, statement);
             }
             statement.addBatch();
         }
