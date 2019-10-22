@@ -112,3 +112,4 @@ outputs:
 * Date
 * DateTime
 * Array(String)
+* LowCardinality(T)
