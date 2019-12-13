@@ -46,6 +46,9 @@ public class Clickhouse extends BaseOutput {
             case "Native":
                 this.formatParse = new Native(config);
                 break;
+            case "RowBinary":
+                this.formatParse = new RowBinary(config);
+                break;
             default:
                 String msg = String.format("Unknown format <%s>", format);
                 log.error(msg);
