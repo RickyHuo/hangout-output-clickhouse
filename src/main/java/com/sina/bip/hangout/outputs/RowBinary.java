@@ -155,11 +155,38 @@ public class RowBinary implements FormatParse {
     private void renderStatement(String fieldType, Object fieldValue, ClickHouseRowBinaryStream statement) throws Exception {
         switch (fieldType) {
             case "Int8":
-            case "Int16":
+                if (fieldValue != null) {
+                    try {
+                        int v = ((Number) fieldValue).intValue();
+                        statement.writeInt8(v);
+
+                    } catch (Exception exp) {
+                        String msg = String.format("Cannot Convert %s %s to integer, render default.", fieldValue.getClass(), fieldValue);
+                        log.warn(msg);
+                        log.error(exp);
+                        statement.writeInt8(0);
+                    }
+                } else {
+                    statement.writeInt8(0);
+                }
+                break;
             case "UInt8":
-            case "UInt16":
-            case "Int32":
-            case "UInt32":
+                if (fieldValue != null) {
+                    try {
+                        int v = ((Number) fieldValue).intValue();
+                        statement.writeUInt8(v);
+
+                    } catch (Exception exp) {
+                        String msg = String.format("Cannot Convert %s %s to integer, render default.", fieldValue.getClass(), fieldValue);
+                        log.warn(msg);
+                        log.error(exp);
+                        statement.writeUInt8(0);
+                    }
+                } else {
+                    statement.writeUInt8(0);
+                }
+                break;
+            case "Int16":
                 if (fieldValue != null) {
                     try {
                         int v = ((Number) fieldValue).intValue();
@@ -169,10 +196,43 @@ public class RowBinary implements FormatParse {
                         String msg = String.format("Cannot Convert %s %s to integer, render default.", fieldValue.getClass(), fieldValue);
                         log.warn(msg);
                         log.error(exp);
-                        statement.writeInt32(0);
+                        statement.writeInt16(0);
                     }
                 } else {
                     statement.writeInt16(0);
+                }
+                break;
+            case "UInt16":
+                if (fieldValue != null) {
+                    try {
+                        int v = ((Number) fieldValue).intValue();
+                        statement.writeUInt16(v);
+
+                    } catch (Exception exp) {
+                        String msg = String.format("Cannot Convert %s %s to integer, render default.", fieldValue.getClass(), fieldValue);
+                        log.warn(msg);
+                        log.error(exp);
+                        statement.writeUInt16(0);
+                    }
+                } else {
+                    statement.writeUInt16(0);
+                }
+                break;
+            case "Int32":
+            case "UInt32":
+                if (fieldValue != null) {
+                    try {
+                        int v = ((Number) fieldValue).intValue();
+                        statement.writeInt32(v);
+
+                    } catch (Exception exp) {
+                        String msg = String.format("Cannot Convert %s %s to integer, render default.", fieldValue.getClass(), fieldValue);
+                        log.warn(msg);
+                        log.error(exp);
+                        statement.writeInt32(0);
+                    }
+                } else {
+                    statement.writeInt32(0);
                 }
                 break;
             case "Int64":
