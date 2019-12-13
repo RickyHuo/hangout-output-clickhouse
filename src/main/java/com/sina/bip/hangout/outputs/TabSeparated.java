@@ -89,7 +89,7 @@ public class TabSeparated implements FormatParse {
 
         ClickHouseProperties properties = new ClickHouseProperties();
         // 避免每次INSERT操作取服务器时间
-        properties.setUseServerTimeZone(false);
+//        properties.setUseServerTimeZone(false);
         this.dataSource = new BalancedClickhouseDataSource(this.jdbcLink, properties);
         if (this.withCredit) {
             ClickHouseProperties withCredentials = properties.withCredentials(this.user, this.password);

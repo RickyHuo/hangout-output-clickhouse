@@ -92,7 +92,7 @@ public class RowBinary implements FormatParse {
 
         ClickHouseProperties properties = new ClickHouseProperties();
         // 避免每次INSERT操作取服务器时间
-        properties.setUseServerTimeZone(false);
+//        properties.setUseServerTimeZone(false);
         this.dataSource = new BalancedClickhouseDataSource(this.jdbcLink, properties);
         if (this.withCredit) {
             ClickHouseProperties withCredentials = properties.withCredentials(this.user, this.password);
@@ -156,9 +156,10 @@ public class RowBinary implements FormatParse {
         switch (fieldType) {
             case "Int8":
             case "Int16":
-            case "Int32":
             case "UInt8":
             case "UInt16":
+            case "Int32":
+            case "UInt32":
                 if (fieldValue != null) {
                     try {
                         int v = ((Number) fieldValue).intValue();
@@ -168,28 +169,27 @@ public class RowBinary implements FormatParse {
                         String msg = String.format("Cannot Convert %s %s to integer, render default.", fieldValue.getClass(), fieldValue);
                         log.warn(msg);
                         log.error(exp);
-                        statement.writeInt16(0);
+                        statement.writeInt32(0);
                     }
                 } else {
                     statement.writeInt16(0);
                 }
                 break;
-            case "UInt64":
             case "Int64":
-            case "UInt32":
+            case "UInt64":
                 if (fieldValue != null) {
                     try {
                         long v = ((Number) fieldValue).longValue();
-                        statement.writeUInt32(v);
+                        statement.writeInt64(v);
 
                     } catch (Exception exp) {
                         String msg = String.format("Cannot Convert %s %s to long, render default", fieldValue.getClass(), fieldValue);
                         log.warn(msg);
                         log.error(exp);
-                        statement.writeUInt32(0L);
+                        statement.writeInt64(0L);
                     }
                 } else {
-                    statement.writeUInt32(0L);
+                    statement.writeInt64(0L);
                 }
                 break;
             case "String":
