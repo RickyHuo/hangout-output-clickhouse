@@ -5,18 +5,21 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import ru.yandex.clickhouse.BalancedClickhouseDataSource;
 import ru.yandex.clickhouse.ClickHouseConnectionImpl;
+import ru.yandex.clickhouse.domain.ClickHouseFormat;
 import ru.yandex.clickhouse.settings.ClickHouseProperties;
+import ru.yandex.clickhouse.util.ClickHouseRowBinaryStream;
+import ru.yandex.clickhouse.util.ClickHouseStreamCallback;
 
-import java.sql.PreparedStatement;
+import java.io.IOException;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class TabSeparated implements FormatParse {
+public class RowBinary implements FormatParse {
 
-    private static final Logger log = LogManager.getLogger(TabSeparated.class);
+    private static final Logger log = LogManager.getLogger(RowBinary.class);
     private Map config;
     private String host;
     private String database;
@@ -36,7 +39,7 @@ public class TabSeparated implements FormatParse {
     private Pattern lowCardinalityPattern = Pattern.compile("LowCardinality\\((.*)\\)");
 
 
-    public TabSeparated(Map config) {
+    public RowBinary(Map config) {
         this.config = config;
     }
 
@@ -141,135 +144,217 @@ public class TabSeparated implements FormatParse {
             realFields.add(ClickhouseUtils.realField(field));
         }
 
-        String init = String.format("insert into %s.%s (%s) values (%s)", this.database,
+        String init = String.format("insert into %s.%s (%s)", this.database,
                 this.table,
-                String.join(", ", realFields),
-                ClickhouseUtils.tabSeparatedPreSql(this.fields.size()));
+                String.join(", ", realFields));
 
         log.debug("init sql: " + init);
         return init;
     }
 
-    private void renderStatement(int index, String fieldType, Object fieldValue, PreparedStatement statement) throws Exception {
+    private void renderStatement(String fieldType, Object fieldValue, ClickHouseRowBinaryStream statement) throws Exception {
         switch (fieldType) {
             case "Int8":
-            case "Int16":
-            case "Int32":
+                if (fieldValue != null) {
+                    try {
+                        int v = ((Number) fieldValue).intValue();
+                        statement.writeInt8(v);
+
+                    } catch (Exception exp) {
+                        String msg = String.format("Cannot Convert %s %s to integer, render default.", fieldValue.getClass(), fieldValue);
+                        log.warn(msg);
+                        log.error(exp);
+                        statement.writeInt8(0);
+                    }
+                } else {
+                    statement.writeInt8(0);
+                }
+                break;
             case "UInt8":
+                if (fieldValue != null) {
+                    try {
+                        int v = ((Number) fieldValue).intValue();
+                        statement.writeUInt8(v);
+
+                    } catch (Exception exp) {
+                        String msg = String.format("Cannot Convert %s %s to integer, render default.", fieldValue.getClass(), fieldValue);
+                        log.warn(msg);
+                        log.error(exp);
+                        statement.writeUInt8(0);
+                    }
+                } else {
+                    statement.writeUInt8(0);
+                }
+                break;
+            case "Int16":
+                if (fieldValue != null) {
+                    try {
+                        int v = ((Number) fieldValue).intValue();
+                        statement.writeInt16(v);
+
+                    } catch (Exception exp) {
+                        String msg = String.format("Cannot Convert %s %s to integer, render default.", fieldValue.getClass(), fieldValue);
+                        log.warn(msg);
+                        log.error(exp);
+                        statement.writeInt16(0);
+                    }
+                } else {
+                    statement.writeInt16(0);
+                }
+                break;
             case "UInt16":
                 if (fieldValue != null) {
                     try {
                         int v = ((Number) fieldValue).intValue();
-                        statement.setInt(index, v);
+                        statement.writeUInt16(v);
 
                     } catch (Exception exp) {
-                        String msg = String.format("Cannot Convert %s %s to integer, render default. Field index is %s", fieldValue.getClass(), fieldValue, index);
+                        String msg = String.format("Cannot Convert %s %s to integer, render default.", fieldValue.getClass(), fieldValue);
                         log.warn(msg);
                         log.error(exp);
-                        statement.setInt(index, 0);
+                        statement.writeUInt16(0);
                     }
                 } else {
-                    statement.setInt(index, 0);
+                    statement.writeUInt16(0);
                 }
                 break;
-            case "UInt64":
-            case "Int64":
+            case "Int32":
             case "UInt32":
                 if (fieldValue != null) {
                     try {
+                        int v = ((Number) fieldValue).intValue();
+                        statement.writeInt32(v);
+
+                    } catch (Exception exp) {
+                        String msg = String.format("Cannot Convert %s %s to integer, render default.", fieldValue.getClass(), fieldValue);
+                        log.warn(msg);
+                        log.error(exp);
+                        statement.writeInt32(0);
+                    }
+                } else {
+                    statement.writeInt32(0);
+                }
+                break;
+            case "Int64":
+            case "UInt64":
+                if (fieldValue != null) {
+                    try {
                         long v = ((Number) fieldValue).longValue();
-                        statement.setLong(index, v);
+                        statement.writeInt64(v);
 
                     } catch (Exception exp) {
                         String msg = String.format("Cannot Convert %s %s to long, render default", fieldValue.getClass(), fieldValue);
                         log.warn(msg);
                         log.error(exp);
-                        statement.setInt(index, 0);
+                        statement.writeInt64(0L);
                     }
                 } else {
-                    statement.setInt(index, 0);
+                    statement.writeInt64(0L);
                 }
                 break;
             case "String":
                 if (fieldValue != null) {
-                    statement.setString(index, fieldValue.toString());
+                    statement.writeString(fieldValue.toString());
                 } else {
-                    statement.setString(index, "");
+                    statement.writeString("");
                 }
                 break;
             case "DateTime":
                 if (fieldValue != null) {
                     if (fieldValue.equals(0) || fieldValue.equals("0")) {
-                        statement.setString(index, "0000-00-00 00:00:00");
+                        statement.writeDateTime(this.datetimeFormat.parse("0000-00-00 00:00:00"));
                     } else {
-                        statement.setString(index, fieldValue.toString());
+                        statement.writeDateTime(this.datetimeFormat.parse(fieldValue.toString()));
                     }
                 } else {
-                    statement.setString(index, this.datetimeFormat.format(System.currentTimeMillis()));
+                    statement.writeDateTime(this.datetimeFormat.parse("0000-00-00 00:00:00"));
                 }
                 break;
             case "Date":
                 if (fieldValue != null) {
                     try {
-                        this.dateFormat.parse(fieldValue.toString());
-                        statement.setString(index, fieldValue.toString());
+                        statement.writeDate(this.dateFormat.parse(fieldValue.toString()));
                     } catch (Exception exp) {
                         log.warn(exp);
-                        statement.setString(index, this.dateFormat.format(System.currentTimeMillis()));
+                        statement.writeDate(new Date());
                     }
                 } else {
-                    statement.setString(index, this.dateFormat.format(System.currentTimeMillis()));
+                    statement.writeDate(new Date());
                 }
                 break;
             case "Float32":
                 if (fieldValue != null) {
                     try {
                         float v = ((Number) fieldValue).floatValue();
-                        statement.setFloat(index, v);
+                        statement.writeFloat32(v);
                     } catch (Exception exp) {
                         String msg = String.format("Cannot Convert %s %s to float, render default", fieldValue.getClass(), fieldValue);
                         log.warn(msg);
                         log.error(exp);
-                        statement.setFloat(index, 0f);
+                        statement.writeFloat64(0f);
                     }
                 } else {
-                    statement.setFloat(index, 0f);
+                    statement.writeFloat32(0f);
+                }
+                break;
+            case "Float64":
+                if (fieldValue != null) {
+                    try {
+                        float v = ((Number) fieldValue).floatValue();
+                        statement.writeFloat64(v);
+                    } catch (Exception exp) {
+                        String msg = String.format("Cannot Convert %s %s to float, render default", fieldValue.getClass(), fieldValue);
+                        log.warn(msg);
+                        log.error(exp);
+                        statement.writeFloat64(0d);
+                    }
+                } else {
+                    statement.writeFloat64(0d);
                 }
                 break;
             case "Array(String)":
                 if (fieldValue != null) {
                     List<String> v = (List) fieldValue;
                     String[] array = v.toArray(new String[v.size()]);
-                    statement.setArray(index, this.conn.createArrayOf("string", array));
+                    statement.writeStringArray(array);
                 } else {
-                    statement.setArray(index, this.conn.createArrayOf("string", new String[1]));
+                    statement.writeStringArray(new String[1]);
                 }
                 break;
             default:
                 Matcher m = lowCardinalityPattern.matcher(fieldType);
                 if (m.find()) {
 //                    System.out.print(m.groupCount());
-                    renderStatement(index, m.group(1), fieldValue, statement);
+                    renderStatement(m.group(1), fieldValue, statement);
                 } else {
-                    renderStatement(index, "String", fieldValue, statement);
+                    renderStatement("String", fieldValue, statement);
                 }
         }
     }
 
     public void bulkInsert(List<Map> events) throws Exception {
 
-        PreparedStatement statement = this.conn.prepareStatement(this.initSql());
-        int size = fields.size();
-        for (Map e : events) {
-            for (int i = 0; i < size; i++) {
-                String field = fields.get(i);
-                String fieldType = this.schema.get(ClickhouseUtils.realField(field));
-                Object fieldValue = this.templateRenderMap.get(field).render(e);
-                renderStatement(i + 1, fieldType, fieldValue, statement);
-            }
-            statement.addBatch();
-        }
-        statement.executeBatch();
-//        statement.close();
+        conn.createStatement().write().send(
+                this.initSql(),
+                new ClickHouseStreamCallback() {
+                    @Override
+                    public void writeTo(ClickHouseRowBinaryStream clickHouseRowBinaryStream) throws IOException {
+                        int size = fields.size();
+                        for (Map e:events) {
+                            for (int i = 0; i < size; i++) {
+                                String field = fields.get(i);
+                                String fieldType = schema.get(ClickhouseUtils.realField(field));
+                                Object fieldValue = templateRenderMap.get(field).render(e);
+                                try {
+                                    renderStatement(fieldType, fieldValue, clickHouseRowBinaryStream);
+                                } catch (Exception exception) {
+                                    continue;
+                                }
+
+                            }
+                        }
+                    }
+                },
+                ClickHouseFormat.RowBinary);
     }
 }
